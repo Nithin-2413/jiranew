@@ -1,0 +1,153 @@
+{
+  "design_system": {
+    "typography": {
+      "font_family": {
+        "headings": "Outfit, sans-serif",
+        "body": "Inter, sans-serif",
+        "mono": "JetBrains Mono, monospace"
+      },
+      "scale": {
+        "h1": "text-4xl font-bold tracking-tight",
+        "h2": "text-3xl font-semibold tracking-tight",
+        "h3": "text-2xl font-semibold",
+        "h4": "text-xl font-medium",
+        "body": "text-base leading-relaxed",
+        "small": "text-sm text-muted-foreground",
+        "tiny": "text-xs font-medium uppercase tracking-wider"
+      },
+      "imports": [
+        "@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');"
+      ]
+    },
+    "colors": {
+      "brand": {
+        "primary": "#0C9ED9",
+        "primary_hover": "#0A85B6",
+        "secondary": "#000000",
+        "accent": "#005587"
+      },
+      "background": {
+        "app": "#F8FAFC",
+        "card": "#FFFFFF",
+        "sidebar": "#FFFFFF",
+        "report_page": "#FFFFFF"
+      },
+      "text": {
+        "primary": "#0F172A",
+        "secondary": "#64748B",
+        "muted": "#94A3B8",
+        "inverse": "#FFFFFF"
+      },
+      "charts": {
+        "series_1": "#0C9ED9",
+        "series_2": "#10B981",
+        "series_3": "#8B5CF6",
+        "series_4": "#F59E0B",
+        "series_5": "#EF4444",
+        "bug": "#EF4444",
+        "story": "#0C9ED9",
+        "task": "#3B82F6",
+        "epic": "#8B5CF6"
+      },
+      "status": {
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "error": "#EF4444",
+        "info": "#3B82F6"
+      }
+    },
+    "spacing": {
+      "container_padding": "p-6 md:p-8 lg:p-12",
+      "section_gap": "gap-8",
+      "component_gap": "gap-4",
+      "report_margin": "my-8"
+    },
+    "visual_enhancers": {
+      "shadows": {
+        "card": "shadow-sm hover:shadow-md transition-shadow duration-200",
+        "report_page": "shadow-lg ring-1 ring-black/5",
+        "dropdown": "shadow-xl border border-slate-100"
+      },
+      "borders": {
+        "default": "border border-slate-200",
+        "active": "border-blue-500 ring-2 ring-blue-500/20"
+      },
+      "radius": {
+        "card": "rounded-xl",
+        "button": "rounded-md",
+        "input": "rounded-md"
+      }
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#0C9ED9] hover:bg-[#0A85B6] text-white font-medium px-6 py-2.5 rounded-md shadow-sm transition-all active:scale-95",
+      "secondary": "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium px-6 py-2.5 rounded-md transition-all",
+      "ghost": "text-slate-600 hover:text-[#0C9ED9] hover:bg-blue-50 px-4 py-2 rounded-md transition-colors",
+      "destructive": "bg-red-50 text-red-600 hover:bg-red-100 border border-red-100"
+    },
+    "cards": {
+      "dashboard": "bg-white border border-slate-100 rounded-xl shadow-sm p-6 flex flex-col gap-4",
+      "metric": "bg-white border border-slate-100 rounded-xl p-6 flex items-center justify-between hover:border-blue-100 transition-colors",
+      "report_preview": "bg-white w-[210mm] min-h-[297mm] mx-auto shadow-2xl p-[20mm] relative mb-12"
+    },
+    "inputs": {
+      "default": "flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0C9ED9] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+      "label": "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2 block text-slate-700"
+    }
+  },
+  "layout_strategy": {
+    "dashboard": {
+      "structure": "flex h-screen bg-[#F8FAFC]",
+      "sidebar": "w-64 bg-white border-r border-slate-200 hidden md:flex flex-col",
+      "main": "flex-1 flex flex-col overflow-hidden",
+      "header": "h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8",
+      "content": "flex-1 overflow-y-auto p-8"
+    },
+    "report_generator": {
+      "grid": "grid grid-cols-1 md:grid-cols-12 gap-6",
+      "config_panel": "col-span-1 md:col-span-4 lg:col-span-3 space-y-6",
+      "preview_panel": "col-span-1 md:col-span-8 lg:col-span-9 bg-slate-100/50 rounded-xl border border-slate-200 p-8 overflow-y-auto max-h-[calc(100vh-12rem)]"
+    }
+  },
+  "assets": {
+    "logo": {
+      "url": "https://customer-assets.emergentagent.com/job_team-metrics-62/artifacts/9yxyauul_Lumen_Technologies_logo.svg-2048x294.png",
+      "alt": "Lumen Technologies Logo",
+      "usage": "Top left of dashboard sidebar, Cover page of PDF report"
+    },
+    "placeholders": {
+      "team_avatar": "https://images.unsplash.com/photo-1650784854945-264d5b0b6b07?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "success_illustration": "Use a clean checkmark icon or simple SVG illustration"
+    },
+    "icons": {
+      "library": "lucide-react",
+      "preferred": ["LayoutDashboard", "FileText", "Settings", "BarChart3", "PieChart", "Users", "Calendar", "Download", "Filter", "Search", "ChevronDown", "CheckCircle2"]
+    }
+  },
+  "libraries": {
+    "charts": "chart.js (via react-chartjs-2)",
+    "pdf": "jspdf (with jspdf-autotable for tables)",
+    "ui": "shadcn/ui (radix-ui primitives)",
+    "icons": "lucide-react",
+    "date": "date-fns"
+  },
+  "instructions_to_main_agent": [
+    "1. SETUP: Ensure 'chart.js', 'react-chartjs-2', 'jspdf', 'jspdf-autotable', 'lucide-react', 'date-fns' are installed.",
+    "2. THEME: Implement the 'Outfit' font by importing it in index.css. Set the primary color to #0C9ED9 in tailwind.config.js.",
+    "3. JIRA INTEGRATION: Since this is client-side only, use a proxy or direct API calls if CORS allows. If CORS is an issue, mock the data for demonstration or provide a clear 'CORS Proxy' input field in the config.",
+    "4. PDF GENERATION: Create a dedicated 'ReportRenderer' component that is hidden from view but used to generate the PDF canvas, OR use the 'jspdf' library directly to draw text and images. The prompt asks for 'jsPDF', so prioritize programmatic generation for better control over pagination.",
+    "5. DASHBOARD: Use the 'Bento' grid layout for the summary metrics. Make sure the 'Generate Report' button is prominent and shows a progress state.",
+    "6. REPORT STRUCTURE: The PDF must have: Cover Page (Logo + Title + Date), Executive Summary (Text + Key Metrics), Charts Pages (1-2 charts per page with analysis text), Data Tables (at the end).",
+    "7. ACCESSIBILITY: Ensure all inputs have labels and all charts have legends/tooltips.",
+    "8. MOCK DATA: If JIRA API fails or is not provided, fallback gracefully to realistic mock data so the user can see the report generation capability."
+  ],
+  "universal_guidelines": [
+    "Do not use gradients for backgrounds, keep it clean white/slate.",
+    "Use 'Outfit' font for all Headings (h1-h4).",
+    "Use 'Inter' for body text.",
+    "Primary Action buttons must be Lumen Blue (#0C9ED9).",
+    "Report pages in the preview must look exactly like the PDF output (WYSIWYG).",
+    "Add 'data-testid' to all interactive elements."
+  ]
+}
