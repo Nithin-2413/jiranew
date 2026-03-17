@@ -148,6 +148,7 @@ async def search_jira_issues(request: JiraSearchRequest):
         
         async with httpx.AsyncClient(timeout=60.0) as client:
             while True:
+                # Updated to use new /rest/api/3/search/jql endpoint
                 search_body = {
                     "jql": jql,
                     "startAt": start_at,
@@ -168,8 +169,9 @@ async def search_jira_issues(request: JiraSearchRequest):
                     ]
                 }
                 
+                # Use the new search/jql endpoint
                 response = await client.post(
-                    f"{jira_url}/rest/api/3/search",
+                    f"{jira_url}/rest/api/3/search/jql",
                     headers=headers,
                     json=search_body
                 )
