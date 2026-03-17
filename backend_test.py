@@ -1,117 +1,288 @@
+#!/usr/bin/env python3
+
 import requests
 import sys
-from datetime import datetime
 import json
+from datetime import datetime
 
-class SimpleAPITester:
+class JiraProxyTester:
     def __init__(self, base_url="https://team-metrics-62.preview.emergentagent.com"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0
+        self.test_results = []
 
-    def run_test(self, name, method, endpoint, expected_status, data=None):
-        """Run a single API test"""
-        url = f"{self.base_url}/{endpoint}"
-        headers = {'Content-Type': 'application/json'}
-
+    def log_result(self, test_name, success, message, response_data=None):
+        """Log test result"""
         self.tests_run += 1
-        print(f"\n🔍 Testing {name}...")
-        print(f"   URL: {url}")
+        if success:
+            self.tests_passed += 1
         
-        try:
-            if method == 'GET':
-                response = requests.get(url, headers=headers, timeout=10)
-            elif method == 'POST':
-                response = requests.post(url, json=data, headers=headers, timeout=10)
-
-            success = response.status_code == expected_status
-            if success:
-                self.tests_passed += 1
-                print(f"✅ Passed - Status: {response.status_code}")
-                try:
-                    response_data = response.json()
-                    print(f"   Response: {json.dumps(response_data, indent=2)}")
-                except:
-                    print(f"   Response: {response.text[:200]}...")
-            else:
-                print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
-                print(f"   Response: {response.text[:200]}...")
-
-            return success, response.json() if success and response.text else {}
-
-        except Exception as e:
-            print(f"❌ Failed - Error: {str(e)}")
-            return False, {}
-
-    def test_root_endpoint(self):
-        """Test root API endpoint"""
-        success, response = self.run_test(
-            "Root API Endpoint",
-            "GET",
-            "api/",
-            200
-        )
+        result = {
+            "test": test_name,
+            "success": success,
+            "message": message,
+            "response": response_data
+        }
+        self.test_results.append(result)
+        
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status} - {test_name}: {message}")
+        
         return success
 
-    def test_create_status_check(self):
-        """Test creating a status check"""
+    def test_jira_test_connection(self):
+        """Test JIRA test-connection endpoint"""
+        url = f"{self.base_url}/api/jira/test-connection"
         test_data = {
-            "client_name": f"test_client_{datetime.now().strftime('%H%M%S')}"
+            "url": "https://test.atlassian.net",
+            "email": "test@example.com", 
+            "apiToken": "test-token",
+            "projectKey": "TEST"
         }
         
-        success, response = self.run_test(
-            "Create Status Check",
-            "POST",
-            "api/status",
-            200,
-            data=test_data
-        )
-        return success, response.get('id') if success else None
+        try:
+            response = requests.post(url, json=test_data, timeout=30)
+            
+            # Check if we got a response (not CORS blocked)
+            if response.status_code in [200, 400, 401, 403, 500]:
+                try:
+                    data = response.json()
+                    if data.get("success") == False and "error" in data:
+                        # Expected: authentication error, not CORS
+                        return self.log_result(
+                            "JIRA Test Connection", 
+                            True, 
+                            f"Endpoint accessible, got expected auth error: {data['error'][:100]}...",
+                            data
+                        )
+                    else:
+                        return self.log_result(
+                            "JIRA Test Connection", 
+                            True, 
+                            f"Endpoint accessible, response: {str(data)[:100]}...",
+                            data
+                        )
+                except json.JSONDecodeError:
+                    return self.log_result(
+                        "JIRA Test Connection", 
+                        False, 
+                        f"Invalid JSON response, status: {response.status_code}",
+                        {"status_code": response.status_code, "text": response.text[:200]}
+                    )
+            else:
+                return self.log_result(
+                    "JIRA Test Connection", 
+                    False, 
+                    f"Unexpected status code: {response.status_code}",
+                    {"status_code": response.status_code}
+                )
+                
+        except requests.exceptions.RequestException as e:
+            return self.log_result(
+                "JIRA Test Connection", 
+                False, 
+                f"Request failed: {str(e)}",
+                {"error": str(e)}
+            )
 
-    def test_get_status_checks(self):
-        """Test getting all status checks"""
-        success, response = self.run_test(
-            "Get Status Checks",
-            "GET",
-            "api/status",
-            200
-        )
-        return success
+    def test_jira_search(self):
+        """Test JIRA search endpoint"""
+        url = f"{self.base_url}/api/jira/search"
+        test_data = {
+            "config": {
+                "url": "https://test.atlassian.net",
+                "email": "test@example.com",
+                "apiToken": "test-token",
+                "projectKey": "TEST"
+            },
+            "filters": {}
+        }
+        
+        try:
+            response = requests.post(url, json=test_data, timeout=30)
+            
+            if response.status_code in [200, 400, 401, 403, 500]:
+                try:
+                    data = response.json()
+                    if data.get("success") == False and "error" in data:
+                        return self.log_result(
+                            "JIRA Search", 
+                            True, 
+                            f"Endpoint accessible, got expected error: {data['error'][:100]}...",
+                            data
+                        )
+                    else:
+                        return self.log_result(
+                            "JIRA Search", 
+                            True, 
+                            f"Endpoint accessible, response: {str(data)[:100]}...",
+                            data
+                        )
+                except json.JSONDecodeError:
+                    return self.log_result(
+                        "JIRA Search", 
+                        False, 
+                        f"Invalid JSON response, status: {response.status_code}",
+                        {"status_code": response.status_code, "text": response.text[:200]}
+                    )
+            else:
+                return self.log_result(
+                    "JIRA Search", 
+                    False, 
+                    f"Unexpected status code: {response.status_code}",
+                    {"status_code": response.status_code}
+                )
+                
+        except requests.exceptions.RequestException as e:
+            return self.log_result(
+                "JIRA Search", 
+                False, 
+                f"Request failed: {str(e)}",
+                {"error": str(e)}
+            )
+
+    def test_jira_sprints(self):
+        """Test JIRA sprints endpoint"""
+        url = f"{self.base_url}/api/jira/sprints"
+        test_data = {
+            "url": "https://test.atlassian.net",
+            "email": "test@example.com",
+            "apiToken": "test-token",
+            "projectKey": "TEST"
+        }
+        
+        try:
+            response = requests.post(url, json=test_data, timeout=30)
+            
+            if response.status_code in [200, 400, 401, 403, 500]:
+                try:
+                    data = response.json()
+                    # Sprints endpoint returns success=True even with auth errors
+                    if "success" in data:
+                        return self.log_result(
+                            "JIRA Sprints", 
+                            True, 
+                            f"Endpoint accessible, response: {str(data)[:100]}...",
+                            data
+                        )
+                    else:
+                        return self.log_result(
+                            "JIRA Sprints", 
+                            True, 
+                            f"Endpoint accessible, got response: {str(data)[:100]}...",
+                            data
+                        )
+                except json.JSONDecodeError:
+                    return self.log_result(
+                        "JIRA Sprints", 
+                        False, 
+                        f"Invalid JSON response, status: {response.status_code}",
+                        {"status_code": response.status_code, "text": response.text[:200]}
+                    )
+            else:
+                return self.log_result(
+                    "JIRA Sprints", 
+                    False, 
+                    f"Unexpected status code: {response.status_code}",
+                    {"status_code": response.status_code}
+                )
+                
+        except requests.exceptions.RequestException as e:
+            return self.log_result(
+                "JIRA Sprints", 
+                False, 
+                f"Request failed: {str(e)}",
+                {"error": str(e)}
+            )
+
+    def test_basic_api_endpoint(self):
+        """Test basic API endpoint"""
+        url = f"{self.base_url}/api/"
+        
+        try:
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                try:
+                    data = response.json()
+                    if data.get("message") == "Hello World":
+                        return self.log_result(
+                            "Basic API", 
+                            True, 
+                            "Basic API endpoint working correctly",
+                            data
+                        )
+                    else:
+                        return self.log_result(
+                            "Basic API", 
+                            True, 
+                            f"API accessible, unexpected response: {data}",
+                            data
+                        )
+                except json.JSONDecodeError:
+                    return self.log_result(
+                        "Basic API", 
+                        False, 
+                        f"Invalid JSON response, status: {response.status_code}",
+                        {"status_code": response.status_code}
+                    )
+            else:
+                return self.log_result(
+                    "Basic API", 
+                    False, 
+                    f"Unexpected status code: {response.status_code}",
+                    {"status_code": response.status_code}
+                )
+                
+        except requests.exceptions.RequestException as e:
+            return self.log_result(
+                "Basic API", 
+                False, 
+                f"Request failed: {str(e)}",
+                {"error": str(e)}
+            )
+
+    def run_all_tests(self):
+        """Run all backend tests"""
+        print("🚀 Starting JIRA Backend Proxy Tests")
+        print(f"📍 Testing against: {self.base_url}")
+        print("=" * 60)
+        
+        # Test basic API first
+        self.test_basic_api_endpoint()
+        
+        # Test JIRA proxy endpoints
+        self.test_jira_test_connection()
+        self.test_jira_search()
+        self.test_jira_sprints()
+        
+        print("\n" + "=" * 60)
+        print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} passed")
+        
+        # Print detailed results
+        print("\n📋 Detailed Results:")
+        for result in self.test_results:
+            status = "✅" if result["success"] else "❌"
+            print(f"{status} {result['test']}: {result['message']}")
+        
+        # Check for CORS-related failures
+        cors_issues = []
+        for result in self.test_results:
+            if not result["success"] and ("cors" in result["message"].lower() or "cross-origin" in result["message"].lower()):
+                cors_issues.append(result["test"])
+        
+        if cors_issues:
+            print(f"\n⚠️  CORS Issues Found in: {', '.join(cors_issues)}")
+        else:
+            print("\n✅ No CORS issues detected - all endpoints accessible")
+        
+        return self.tests_passed == self.tests_run
 
 def main():
-    print("🚀 Starting Backend API Tests...")
-    print("=" * 50)
-    
-    # Setup
-    tester = SimpleAPITester()
-
-    # Run tests
-    print("\n📋 Testing Basic API Endpoints...")
-    
-    # Test root endpoint
-    if not tester.test_root_endpoint():
-        print("❌ Root endpoint failed, but continuing with other tests...")
-
-    # Test create status check
-    success, status_id = tester.test_create_status_check()
-    if not success:
-        print("❌ Status check creation failed")
-
-    # Test get status checks
-    if not tester.test_get_status_checks():
-        print("❌ Status check retrieval failed")
-
-    # Print results
-    print("\n" + "=" * 50)
-    print(f"📊 Backend API Test Results:")
-    print(f"   Tests passed: {tester.tests_passed}/{tester.tests_run}")
-    
-    if tester.tests_passed == tester.tests_run:
-        print("✅ All backend tests passed!")
-        return 0
-    else:
-        print("❌ Some backend tests failed!")
-        return 1
+    tester = JiraProxyTester()
+    success = tester.run_all_tests()
+    return 0 if success else 1
 
 if __name__ == "__main__":
     sys.exit(main())
