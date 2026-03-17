@@ -1,34 +1,129 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+.App {
+  min-height: 100vh;
+  background: #F8FAFC;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.btn-primary {
+  background: #0C9ED9;
+  color: white;
+  font-weight: 500;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.btn-primary:hover {
+  background: #0A85B6;
 }
 
-.App-link {
-    color: #61dafb;
+.btn-primary:active {
+  transform: scale(0.95);
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.metric-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: border-color 0.2s;
+}
+
+.metric-card:hover {
+  border-color: #DBEAFE;
+}
+
+.report-preview-page {
+  background: white;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 20mm;
+  position: relative;
+  margin-bottom: 3rem;
+  break-inside: avoid;
+}
+
+.loading-bar {
+  width: 100%;
+  height: 4px;
+  background: #E2E8F0;
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.loading-bar-progress {
+  height: 100%;
+  background: #0C9ED9;
+  transition: width 0.3s ease;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  background: #F1F5F9;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  border-bottom: 2px solid #E2E8F0;
+}
+
+.data-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #E2E8F0;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.data-table tbody tr:hover {
+  background: #F8FAFC;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-open {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.status-in-progress {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.status-resolved {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.status-closed {
+  background: #E5E7EB;
+  color: #374151;
 }
