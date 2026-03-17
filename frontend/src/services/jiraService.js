@@ -27,9 +27,19 @@ export class JiraService {
       );
       return { success: true, data: response.data };
     } catch (error) {
+      let errorMessage = error.message;
+      
+      if (error.message.includes('Network Error') || error.code === 'ERR_NETWORK') {
+        errorMessage = 'CORS Error: Direct browser access to JIRA API is blocked. Consider using a CORS proxy or backend service.';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please check your email and API token.';
+      } else if (error.response?.data?.errorMessages?.[0]) {
+        errorMessage = error.response.data.errorMessages[0];
+      }
+      
       return { 
         success: false, 
-        error: error.response?.data?.errorMessages?.[0] || error.message 
+        error: errorMessage
       };
     }
   }
