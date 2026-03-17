@@ -83,9 +83,19 @@ export class JiraService {
 
       return { success: true, issues: allIssues, total };
     } catch (error) {
+      let errorMessage = error.message;
+      
+      if (error.message.includes('Network Error') || error.code === 'ERR_NETWORK') {
+        errorMessage = 'CORS Error: Unable to fetch data from JIRA. Browser-based JIRA API access is restricted. Consider using mock data or a backend proxy.';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please verify your JIRA credentials.';
+      } else if (error.response?.data?.errorMessages?.[0]) {
+        errorMessage = error.response.data.errorMessages[0];
+      }
+      
       return { 
         success: false, 
-        error: error.response?.data?.errorMessages?.[0] || error.message 
+        error: errorMessage
       };
     }
   }
