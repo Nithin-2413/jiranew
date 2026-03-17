@@ -64,8 +64,10 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
       const result = await jiraService.fetchIssues(filters);
       
       if (!result.success) {
-        toast.error(`Failed to fetch issues: ${result.error}`);
         setLoading(false);
+        setProgress(0);
+        setProgressText('');
+        toast.error(`Failed to fetch issues: ${result.error}`);
         return;
       }
 
@@ -82,13 +84,19 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
         setProgress(100);
         setProgressText('Report ready!');
         toast.success(`Report generated successfully with ${result.total} issues`);
-        setLoading(false);
+        setTimeout(() => {
+          setLoading(false);
+          setProgress(0);
+          setProgressText('');
+        }, 1000);
       }, 500);
 
     } catch (error) {
       console.error('Error generating report:', error);
-      toast.error(`Error: ${error.message}`);
       setLoading(false);
+      setProgress(0);
+      setProgressText('');
+      toast.error(`Failed to generate report: ${error.message || 'Unknown error'}`);
     }
   };
 
