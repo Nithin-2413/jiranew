@@ -13,7 +13,8 @@ export const processJiraData = (issues) => {
     storyPointsMetrics: calculateStoryPointsMetrics(issues),
     labelMetrics: calculateLabelMetrics(issues),
     timeMetrics: calculateTimeMetrics(issues),
-    detailedIssues: processDetailedIssues(issues)
+    detailedIssues: processDetailedIssues(issues),
+    advancedAnalytics: calculateAdvancedAnalytics(issues)
   };
 
   return metrics;
@@ -62,7 +63,6 @@ const calculateTeamMetrics = (issues) => {
 };
 
 const calculateSprintMetrics = (issues) => {
-  // This is a simplified version - real sprint data would come from JIRA Agile API
   const sprints = {};
   
   issues.forEach(issue => {
@@ -155,12 +155,19 @@ const calculateStoryPointsMetrics = (issues) => {
 const calculateLabelMetrics = (issues) => {
   const labelCount = {};
   const labelCombinations = {};
+  const labelByIssueType = {};
 
   issues.forEach(issue => {
     const labels = issue.fields.labels || [];
+    const issueType = issue.fields.issuetype?.name || 'Unknown';
     
     labels.forEach(label => {
       labelCount[label] = (labelCount[label] || 0) + 1;
+      
+      if (!labelByIssueType[label]) {
+        labelByIssueType[label] = {};
+      }
+      labelByIssueType[label][issueType] = (labelByIssueType[label][issueType] || 0) + 1;
     });
 
     if (labels.length > 1) {
@@ -171,12 +178,13 @@ const calculateLabelMetrics = (issues) => {
 
   const topLabels = Object.entries(labelCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 15);
+    .slice(0, 20);
 
   return {
     labelCount,
     topLabels,
-    labelCombinations
+    labelCombinations,
+    labelByIssueType
   };
 };
 
@@ -202,6 +210,76 @@ const calculateTimeMetrics = (issues) => {
   };
 };
 
+const calculateAdvancedAnalytics = (issues) => {
+  // Issue type vs Label correlation
+  const issueTypeVsLabel = {};
+  
+  // Test execution tracking
+  const testMetrics = {
+    total: 0,
+    passed: 0,
+    failed: 0,
+    blocked: 0
+  };
+  
+  // Subtask analysis
+  const subtaskMetrics = {
+    totalWithSubtasks: 0,
+    avgSubtasksPerIssue: 0,
+    subtasksByLabel: {}
+  };
+  
+  let subtaskCount = 0;
+  
+  issues.forEach(issue => {
+    const issueType = issue.fields.issuetype?.name || 'Unknown';
+    const labels = issue.fields.labels || [];
+    const subtasks = issue.fields.subtasks || [];
+    
+    // Issue type vs label
+    if (!issueTypeVsLabel[issueType]) {
+      issueTypeVsLabel[issueType] = {};
+    }
+    
+    labels.forEach(label => {
+      issueTypeVsLabel[issueType][label] = (issueTypeVsLabel[issueType][label] || 0) + 1;
+    });
+    
+    // Test tracking
+    if (issueType === 'Test') {
+      testMetrics.total += 1;
+      const status = issue.fields.status?.name?.toLowerCase() || '';
+      if (status.includes('pass') || status.includes('done')) {
+        testMetrics.passed += 1;
+      } else if (status.includes('fail')) {
+        testMetrics.failed += 1;
+      } else if (status.includes('block')) {
+        testMetrics.blocked += 1;
+      }
+    }
+    
+    // Subtask analysis
+    if (subtasks.length > 0) {
+      subtaskMetrics.totalWithSubtasks += 1;
+      subtaskCount += subtasks.length;
+      
+      labels.forEach(label => {
+        subtaskMetrics.subtasksByLabel[label] = (subtaskMetrics.subtasksByLabel[label] || 0) + subtasks.length;
+      });
+    }
+  });
+  
+  subtaskMetrics.avgSubtasksPerIssue = subtaskMetrics.totalWithSubtasks > 0 
+    ? (subtaskCount / subtaskMetrics.totalWithSubtasks).toFixed(1)
+    : 0;
+  
+  return {
+    issueTypeVsLabel,
+    testMetrics,
+    subtaskMetrics
+  };
+};
+
 const processDetailedIssues = (issues) => {
   return issues.map(issue => ({
     key: issue.key,
@@ -224,9 +302,14 @@ const getEmptyMetrics = () => ({
   sprintMetrics: { sprints: {} },
   qualityMetrics: { totalBugs: 0, bugsByPriority: {}, resolvedBugs: 0, bugDensity: 0 },
   storyPointsMetrics: { totalPoints: 0, completedPoints: 0, pointsByStatus: {}, avgPoints: 0, completionRate: 0 },
-  labelMetrics: { labelCount: {}, topLabels: [], labelCombinations: {} },
+  labelMetrics: { labelCount: {}, topLabels: [], labelCombinations: {}, labelByIssueType: {} },
   timeMetrics: { avgResolutionTime: 0, resolvedIssues: 0 },
-  detailedIssues: []
+  detailedIssues: [],
+  advancedAnalytics: {
+    issueTypeVsLabel: {},
+    testMetrics: { total: 0, passed: 0, failed: 0, blocked: 0 },
+    subtaskMetrics: { totalWithSubtasks: 0, avgSubtasksPerIssue: 0, subtasksByLabel: {} }
+  }
 });
 
 export const getDatePresets = () => ({
