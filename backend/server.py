@@ -239,12 +239,25 @@ async def search_jira_issues(request: JiraSearchRequest):
                         for field_id in story_points_field_ids:
                             if field_id in fields and fields[field_id] is not None:
                                 story_points = fields[field_id]
-                                if story_points > 0:
+                                if story_points and isinstance(story_points, (int, float)) and story_points > 0:
                                     logger.info(f"Found story points in {field_id}: {story_points}")
                                 break
                     
-                    # Set standardized field
-                    issue["fields"]["customfield_10016"] = story_points if story_points is not None else 0
+                    # Convert to number and set standardized field
+                    try:
+                        if story_points is not None:
+                            if isinstance(story_points, str):
+                                story_points = float(story_points) if story_points else 0
+                            elif isinstance(story_points, (int, float)):
+                                story_points = float(story_points)
+                            else:
+                                story_points = 0
+                        else:
+                            story_points = 0
+                    except (ValueError, TypeError):
+                        story_points = 0
+                    
+                    issue["fields"]["customfield_10016"] = story_points
                 
                 all_issues.extend(issues)
                 
