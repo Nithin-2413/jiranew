@@ -199,13 +199,13 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)'
+          color: '#F1F5F9'
         },
         ticks: {
           font: {
             family: 'Inter'
           },
-          color: 'rgba(255, 255, 255, 0.7)'
+          color: '#64748B'
         }
       },
       x: {
@@ -216,7 +216,7 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
           font: {
             family: 'Inter'
           },
-          color: 'rgba(255, 255, 255, 0.7)',
+          color: '#64748B',
           maxRotation: 45,
           minRotation: 0
         }
