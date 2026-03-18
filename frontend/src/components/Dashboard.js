@@ -1,23 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { Settings, Download, Calendar, Filter, FileText, BarChart3 } from 'lucide-react';
+import { Settings, Download, Filter, BarChart3, TrendingUp, Activity } from 'lucide-react';
 import JiraService from '../services/jiraService';
-import { processJiraData, getDatePresets } from '../services/dataProcessor';
+import { processJiraData } from '../services/dataProcessor';
 import { generatePDF } from '../services/pdfGenerator';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select';
 import MetricsCards from './MetricsCards';
 import ChartsPreview from './ChartsPreview';
+import FilterModal from './FilterModal';
 
 const Dashboard = ({ jiraConfig, onOpenConfig }) => {
   const [filters, setFilters] = useState({
@@ -32,17 +23,8 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressText, setProgressText] = useState('');
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const chartRefs = useRef({});
-
-  const datePresets = getDatePresets();
-
-  const handlePresetSelect = (preset) => {
-    setFilters(prev => ({
-      ...prev,
-      startDate: preset.start,
-      endDate: preset.end
-    }));
-  };
 
   const handleGenerateReport = async () => {
     if (!jiraConfig) {
@@ -78,12 +60,12 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
       setMetrics(processedMetrics);
 
       setProgress(80);
-      setProgressText('Preparing preview...');
+      setProgressText('Preparing analytics...');
 
       setTimeout(() => {
         setProgress(100);
         setProgressText('Report ready!');
-        toast.success(`Report generated successfully with ${result.total} issues`);
+        toast.success(`Report generated with ${result.total} issues`);
         setTimeout(() => {
           setLoading(false);
           setProgress(0);
@@ -111,7 +93,6 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
     setProgressText('Preparing PDF...');
 
     try {
-      // Capture chart images
       setProgress(30);
       setProgressText('Generating charts...');
       
@@ -161,222 +142,182 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
 
     } catch (error) {
       console.error('Error exporting PDF:', error);
-      toast.error(`Failed to export PDF: ${error.message}`);
       setLoading(false);
+      setProgress(0);
+      setProgressText('');
+      toast.error(`Failed to export PDF: ${error.message}`);
     }
   };
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC]">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col">
-        <div className="p-6 border-b border-slate-200">
-          <img 
-            src="https://customer-assets.emergentagent.com/job_team-metrics-62/artifacts/9yxyauul_Lumen_Technologies_logo.svg-2048x294.png" 
-            alt="Lumen Technologies"
-            className="h-8 object-contain"
-          />
-        </div>
-        
-        <nav className="flex-1 p-4 space-y-2">
-          <button 
-            data-testid="nav-dashboard-btn"
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#0C9ED9] bg-blue-50 rounded-md"
-          >
-            <BarChart3 size={18} />
-            Dashboard
-          </button>
-          <button 
-            data-testid="nav-reports-btn"
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-[#0C9ED9] hover:bg-blue-50 rounded-md transition-colors"
-          >
-            <FileText size={18} />
-            Reports
-          </button>
-        </nav>
-
-        <div className="p-4 border-t border-slate-200">
-          <button
-            data-testid="settings-btn"
-            onClick={onOpenConfig}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-[#0C9ED9] hover:bg-blue-50 rounded-md transition-colors"
-          >
-            <Settings size={18} />
-            Settings
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Top Bar */}
+      <div className="glass-panel border-b border-white/10">
+        <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-r from-cyan-500 to-blue-500 p-2 rounded-lg">
+              <BarChart3 className="text-white" size={24} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">JIRA Analytics Dashboard</h1>
+              {jiraConfig && (
+                <p className="text-sm text-slate-300">Project: {jiraConfig.projectKey}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              data-testid="filter-btn"
+              onClick={() => setShowFilterModal(true)}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white border-0 shadow-lg"
+            >
+              <Filter size={18} className="mr-2" />
+              Filters
+            </Button>
+            <Button
+              data-testid="settings-btn"
+              onClick={onOpenConfig}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              <Settings size={18} />
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">JIRA Report Generator</h1>
-            {jiraConfig && (
-              <p className="text-sm text-slate-500 mt-0.5">Project: {jiraConfig.projectKey}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
+      <div className="max-w-[1600px] mx-auto px-6 py-8">
+        {/* Action Buttons */}
+        <div className="flex gap-4 mb-8">
+          <Button
+            data-testid="generate-report-btn"
+            onClick={handleGenerateReport}
+            disabled={loading}
+            className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white border-0 py-6 text-lg font-semibold shadow-xl"
+          >
+            <Activity size={20} className="mr-2" />
+            {loading ? 'Generating...' : 'Generate Analytics Report'}
+          </Button>
+          {metrics && (
             <Button
-              data-testid="settings-mobile-btn"
-              onClick={onOpenConfig}
-              variant="outline"
-              size="sm"
-              className="md:hidden"
+              data-testid="export-pdf-btn"
+              onClick={handleExportPDF}
+              disabled={loading}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white border-0 py-6 px-8 text-lg font-semibold shadow-xl"
             >
-              <Settings size={16} />
+              <Download size={20} className="mr-2" />
+              Export PDF
+            </Button>
+          )}
+        </div>
+
+        {/* Progress Bar */}
+        {loading && (
+          <div className="glass-panel p-6 rounded-2xl mb-8">
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-white font-medium">{progressText}</span>
+                <span className="font-bold text-cyan-400">{progress}%</span>
+              </div>
+              <div className="loading-bar">
+                <div 
+                  className="loading-bar-progress" 
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Analytics Content */}
+        {!metrics ? (
+          <div className="glass-panel p-16 rounded-2xl text-center">
+            <div className="mb-6">
+              <TrendingUp size={64} className="mx-auto text-slate-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-3">No Analytics Yet</h3>
+            <p className="text-slate-300 text-lg mb-6">
+              Click "Generate Analytics Report" to fetch and analyze your JIRA data
+            </p>
+            <Button
+              onClick={() => setShowFilterModal(true)}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white"
+            >
+              <Filter size={18} className="mr-2" />
+              Configure Filters
             </Button>
           </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            {/* Filter Panel */}
-            <div className="col-span-1 md:col-span-4 lg:col-span-3 space-y-6">
-              <Card className="p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Filter size={18} className="text-[#0C9ED9]" />
-                  <h2 className="text-lg font-semibold">Filters</h2>
+        ) : (
+          <div className="space-y-8">
+            <MetricsCards metrics={metrics} />
+            
+            {/* Advanced Analytics Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="stat-card">
+                <h4 className="text-sm font-semibold text-white/70 uppercase tracking-wide mb-2">Test Coverage</h4>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold text-white">
+                    {metrics.advancedAnalytics.testMetrics.total}
+                  </span>
+                  <span className="text-lg text-slate-400">tests</span>
                 </div>
-
-                <div className="space-y-4">
-                  {/* Date Range */}
-                  <div>
-                    <Label htmlFor="start-date" className="flex items-center gap-2 mb-2">
-                      <Calendar size={14} />
-                      Start Date
-                    </Label>
-                    <Input
-                      id="start-date"
-                      data-testid="start-date-input"
-                      type="date"
-                      value={filters.startDate}
-                      onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="end-date">End Date</Label>
-                    <Input
-                      id="end-date"
-                      data-testid="end-date-input"
-                      type="date"
-                      value={filters.endDate}
-                      onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                    />
-                  </div>
-
-                  {/* Quick Presets */}
-                  <div>
-                    <Label>Quick Presets</Label>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {Object.values(datePresets).map((preset) => (
-                        <Button
-                          key={preset.label}
-                          data-testid={`preset-${preset.label.toLowerCase().replace(/\s+/g, '-')}`}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePresetSelect(preset)}
-                          className="text-xs"
-                        >
-                          {preset.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Status Filter */}
-                  <div>
-                    <Label htmlFor="status-filter">Status (Optional)</Label>
-                    <Input
-                      id="status-filter"
-                      data-testid="status-filter-input"
-                      placeholder="e.g. Done, In Progress"
-                      onChange={(e) => setFilters(prev => ({ 
-                        ...prev, 
-                        status: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-                      }))}
-                    />
-                  </div>
-
-                  {/* Issue Type Filter */}
-                  <div>
-                    <Label htmlFor="issue-type-filter">Issue Type (Optional)</Label>
-                    <Input
-                      id="issue-type-filter"
-                      data-testid="issue-type-filter-input"
-                      placeholder="e.g. Bug, Story, Task"
-                      onChange={(e) => setFilters(prev => ({ 
-                        ...prev, 
-                        issueType: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-                      }))}
-                    />
-                  </div>
+                <div className="mt-3 flex gap-2 text-sm">
+                  <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded">
+                    ✓ {metrics.advancedAnalytics.testMetrics.passed} passed
+                  </span>
+                  {metrics.advancedAnalytics.testMetrics.failed > 0 && (
+                    <span className="px-2 py-1 bg-red-500/20 text-red-300 rounded">
+                      ✗ {metrics.advancedAnalytics.testMetrics.failed} failed
+                    </span>
+                  )}
                 </div>
+              </div>
 
-                <Button
-                  data-testid="generate-report-btn"
-                  onClick={handleGenerateReport}
-                  disabled={loading}
-                  className="w-full mt-6 bg-[#0C9ED9] hover:bg-[#0A85B6] text-white"
-                >
-                  {loading ? 'Generating...' : 'Generate Report'}
-                </Button>
+              <div className="stat-card">
+                <h4 className="text-sm font-semibold text-white/70 uppercase tracking-wide mb-2">Avg Resolution</h4>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold text-white">
+                    {metrics.timeMetrics.avgResolutionTime}
+                  </span>
+                  <span className="text-lg text-slate-400">days</span>
+                </div>
+                <div className="mt-3 text-sm text-slate-400">
+                  Based on {metrics.timeMetrics.resolvedIssues} resolved issues
+                </div>
+              </div>
 
-                {metrics && (
-                  <Button
-                    data-testid="export-pdf-btn"
-                    onClick={handleExportPDF}
-                    disabled={loading}
-                    variant="outline"
-                    className="w-full mt-3"
-                  >
-                    <Download size={16} className="mr-2" />
-                    Export to PDF
-                  </Button>
-                )}
-              </Card>
-
-              {loading && (
-                <Card className="p-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">{progressText}</span>
-                      <span className="font-medium text-[#0C9ED9]">{progress}%</span>
-                    </div>
-                    <div className="loading-bar">
-                      <div 
-                        className="loading-bar-progress" 
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                </Card>
-              )}
+              <div className="stat-card">
+                <h4 className="text-sm font-semibold text-white/70 uppercase tracking-wide mb-2">Label Usage</h4>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold text-white">
+                    {metrics.labelMetrics.topLabels.length}
+                  </span>
+                  <span className="text-lg text-slate-400">labels</span>
+                </div>
+                <div className="mt-3 text-sm text-slate-400">
+                  {Object.keys(metrics.labelMetrics.labelByIssueType).length} unique categories
+                </div>
+              </div>
             </div>
 
-            {/* Preview Panel */}
-            <div className="col-span-1 md:col-span-8 lg:col-span-9">
-              {!metrics ? (
-                <Card className="p-12 text-center">
-                  <FileText size={48} className="mx-auto text-slate-300 mb-4" />
-                  <h3 className="text-xl font-semibold text-slate-700 mb-2">No Report Generated</h3>
-                  <p className="text-slate-500">
-                    Configure your filters and click "Generate Report" to create your JIRA analysis
-                  </p>
-                </Card>
-              ) : (
-                <div className="space-y-6">
-                  <MetricsCards metrics={metrics} />
-                  <ChartsPreview metrics={metrics} chartRefs={chartRefs} />
-                </div>
-              )}
-            </div>
+            <ChartsPreview metrics={metrics} chartRefs={chartRefs} />
           </div>
-        </div>
+        )}
       </div>
+
+      {/* Filter Modal */}
+      <FilterModal 
+        open={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        filters={filters}
+        setFilters={setFilters}
+        onApply={() => {
+          if (metrics) {
+            handleGenerateReport();
+          }
+        }}
+      />
     </div>
   );
 };
