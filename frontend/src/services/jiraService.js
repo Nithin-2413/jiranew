@@ -37,11 +37,40 @@ export class JiraService {
 
   async fetchIssues(filters = {}) {
     try {
+      // First, get all fields to find story points field dynamically
+      let storyPointsFieldId = 'customfield_10016'; // Default common ID
+      
+      try {
+        const fieldsResponse = await axios.get(
+          `${this.baseUrl}/rest/api/3/field`,
+          { headers: this.getAuthHeaders() }
+        );
+        
+        // Search for story points field
+        const storyPointsField = fieldsResponse.data.find(field => 
+          field.name && (
+            field.name.toLowerCase().includes('story point') ||
+            field.name.toLowerCase().includes('story points') ||
+            field.id === 'customfield_10016' ||
+            field.id === 'customfield_10024' ||
+            field.id === 'customfield_10004'
+          )
+        );
+        
+        if (storyPointsField) {
+          storyPointsFieldId = storyPointsField.id;
+          console.log('Found story points field:', storyPointsFieldId, storyPointsField.name);
+        }
+      } catch (error) {
+        console.warn('Could not fetch fields, using default story points field ID');
+      }
+
       const response = await axios.post(
         `${API_BASE_URL}/jira/search`,
         {
           config: this.getConfig(),
-          filters: filters
+          filters: filters,
+          storyPointsFieldId: storyPointsFieldId
         }
       );
       return response.data;
