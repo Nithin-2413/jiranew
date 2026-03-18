@@ -13,6 +13,7 @@ import {
   RadialLinearScale
 } from 'chart.js';
 import { Bar, Doughnut, Line, Radar, PolarArea } from 'react-chartjs-2';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 ChartJS.register(
   CategoryScale,
@@ -24,7 +25,8 @@ ChartJS.register(
   ArcElement,
   PointElement,
   LineElement,
-  RadialLinearScale
+  RadialLinearScale,
+  ChartDataLabels
 );
 
 const CHART_COLORS = {
