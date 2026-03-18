@@ -247,7 +247,7 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
               </p>
               <Button
                 onClick={() => setShowFilterModal(true)}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white"
+                className="bg-slate-900 hover:bg-slate-800 text-blue-500 font-semibold"
               >
                 <Filter size={18} className="mr-2" />
                 Configure Filters First
