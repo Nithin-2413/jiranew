@@ -103,11 +103,10 @@ async def test_jira_connection(config: JiraConfig):
 
 @api_router.post("/jira/search")
 async def search_jira_issues(request: JiraSearchRequest):
-    """Proxy endpoint to search JIRA issues using the new search/jql endpoint"""
+    """Proxy endpoint to search JIRA issues - tries multiple story points fields"""
     try:
         config = request.config
         filters = request.filters
-        story_points_field = request.storyPointsFieldId or 'customfield_10016'
         
         auth_string = f"{config.email}:{config.apiToken}"
         auth_bytes = auth_string.encode('utf-8')
@@ -120,6 +119,38 @@ async def search_jira_issues(request: JiraSearchRequest):
         }
         
         jira_url = config.url.rstrip('/')
+        
+        # Try to detect story points field from field list
+        story_points_field_ids = [
+            'customfield_10016',  # Most common
+            'customfield_10024',  # Alternative 1
+            'customfield_10004',  # Alternative 2
+            'customfield_10008',  # Alternative 3
+            'customfield_10026',  # Alternative 4
+        ]
+        
+        detected_field = 'customfield_10016'  # Default
+        
+        try:
+            # Try to get field metadata to find story points field
+            fields_response = await httpx.get(
+                f"{jira_url}/rest/api/3/field",
+                headers=headers,
+                timeout=10.0
+            )
+            
+            if fields_response.status_code == 200:
+                fields = fields_response.json()
+                for field in fields:
+                    if field.get('name') and (
+                        'story point' in field['name'].lower() or
+                        'estimate' in field['name'].lower() and 'story' in field['name'].lower()
+                    ):
+                        detected_field = field['id']
+                        logger.info(f"Detected story points field: {detected_field} ({field['name']})")
+                        break
+        except Exception as e:
+            logger.warning(f"Could not detect story points field: {str(e)}")
         
         # Build JQL query
         conditions = [f"project = {config.projectKey}"]
@@ -142,14 +173,13 @@ async def search_jira_issues(request: JiraSearchRequest):
             
         jql = ' AND '.join(conditions) + ' ORDER BY created DESC'
         
-        # Fetch all issues using new pagination with nextPageToken
+        # Fetch all issues - request ALL possible story points fields
         all_issues = []
         next_page_token = None
         max_results = 100
         
         async with httpx.AsyncClient(timeout=60.0) as client:
             while True:
-                # Use the new API format with nextPageToken and dynamic story points field
                 search_body = {
                     "jql": jql,
                     "maxResults": max_results,
@@ -164,16 +194,20 @@ async def search_jira_issues(request: JiraSearchRequest):
                         "labels",
                         "subtasks",
                         "parent",
-                        story_points_field,  # Use dynamic field ID
-                        "sprint"
+                        "sprint",
+                        # Request ALL possible story points fields
+                        "customfield_10016",
+                        "customfield_10024",
+                        "customfield_10004",
+                        "customfield_10008",
+                        "customfield_10026",
+                        detected_field
                     ]
                 }
                 
-                # Add pagination token if exists
                 if next_page_token:
                     search_body["nextPageToken"] = next_page_token
                 
-                # Use the new search/jql endpoint
                 response = await client.post(
                     f"{jira_url}/rest/api/3/search/jql",
                     headers=headers,
@@ -191,27 +225,44 @@ async def search_jira_issues(request: JiraSearchRequest):
                 data = response.json()
                 issues = data.get("issues", [])
                 
-                # Normalize the story points field to a standard field name
+                # Normalize story points - try all possible fields
                 for issue in issues:
-                    if story_points_field in issue.get("fields", {}):
-                        issue["fields"]["customfield_10016"] = issue["fields"][story_points_field]
+                    fields = issue.get("fields", {})
+                    story_points = None
+                    
+                    # Try detected field first
+                    if detected_field in fields and fields[detected_field] is not None:
+                        story_points = fields[detected_field]
+                    
+                    # Fall back to trying all common fields
+                    if story_points is None:
+                        for field_id in story_points_field_ids:
+                            if field_id in fields and fields[field_id] is not None:
+                                story_points = fields[field_id]
+                                if story_points > 0:
+                                    logger.info(f"Found story points in {field_id}: {story_points}")
+                                break
+                    
+                    # Set standardized field
+                    issue["fields"]["customfield_10016"] = story_points if story_points is not None else 0
                 
                 all_issues.extend(issues)
                 
-                # Get next page token for pagination
                 next_page_token = data.get("nextPageToken")
                 
-                # Stop if no more pages or hit safety limit
                 if not next_page_token or len(all_issues) >= 1000:
                     break
         
-        logger.info(f"Fetched {len(all_issues)} issues with story points field: {story_points_field}")
+        # Count how many issues have story points
+        issues_with_points = sum(1 for issue in all_issues if issue["fields"].get("customfield_10016", 0) > 0)
+        logger.info(f"Fetched {len(all_issues)} issues, {issues_with_points} have story points")
         
         return {
             "success": True,
             "issues": all_issues,
             "total": len(all_issues),
-            "storyPointsField": story_points_field
+            "storyPointsField": detected_field,
+            "issuesWithPoints": issues_with_points
         }
                 
     except httpx.TimeoutException:
