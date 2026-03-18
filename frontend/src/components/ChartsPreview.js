@@ -169,13 +169,13 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
             size: 11
           },
           padding: 15,
-          color: 'rgba(255, 255, 255, 0.9)',
+          color: '#334155',
           usePointStyle: true,
           pointStyle: 'circle'
         }
       },
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        backgroundColor: 'rgba(15, 23, 42, 0.95)',
         padding: 12,
         cornerRadius: 8,
         titleFont: {
@@ -187,7 +187,7 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
           size: 12,
           family: 'Inter'
         },
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(226, 232, 240, 0.2)',
         borderWidth: 1
       }
     }
