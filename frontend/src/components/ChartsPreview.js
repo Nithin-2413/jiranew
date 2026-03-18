@@ -433,8 +433,8 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
       )}
 
       {/* Detailed Issues Table */}
-      <div className="glass-panel p-6 rounded-2xl">
-        <h3 className="text-2xl font-bold mb-6 text-white">Recent Issues</h3>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h3 className="text-2xl font-bold mb-6 text-slate-900">Recent Issues</h3>
         <div data-testid="issues-table" className="table-container">
           <table className="data-table">
             <thead>
@@ -451,12 +451,12 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
             <tbody>
               {metrics.detailedIssues.slice(0, 30).map((issue) => (
                 <tr key={issue.key}>
-                  <td className="font-bold text-cyan-400">{issue.key}</td>
-                  <td className="max-w-xs truncate text-white">
+                  <td className="font-bold text-cyan-600">{issue.key}</td>
+                  <td className="max-w-xs truncate text-slate-900">
                     {issue.summary.substring(0, 60)}{issue.summary.length > 60 ? '...' : ''}
                   </td>
                   <td>
-                    <span className="px-3 py-1 text-xs rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white font-medium">
+                    <span className="px-3 py-1 text-xs rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-slate-900 font-medium">
                       {issue.type}
                     </span>
                   </td>
@@ -469,25 +469,25 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                       {issue.status}
                     </span>
                   </td>
-                  <td className="text-white/80">{issue.assignee}</td>
+                  <td className="text-slate-700">{issue.assignee}</td>
                   <td className="text-center">
                     {issue.storyPoints > 0 ? (
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-sm">
                         {issue.storyPoints}
                       </span>
                     ) : (
-                      <span className="text-white/30">-</span>
+                      <span className="text-slate-400">-</span>
                     )}
                   </td>
                   <td>
                     <div className="flex flex-wrap gap-1">
                       {issue.labels.slice(0, 2).map(label => (
-                        <span key={label} className="px-2 py-0.5 text-xs rounded bg-white/10 text-white/70">
+                        <span key={label} className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-700">
                           {label}
                         </span>
                       ))}
                       {issue.labels.length > 2 && (
-                        <span className="px-2 py-0.5 text-xs rounded bg-white/10 text-white/70">
+                        <span className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-700">
                           +{issue.labels.length - 2}
                         </span>
                       )}
