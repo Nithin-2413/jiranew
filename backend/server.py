@@ -49,6 +49,7 @@ class JiraConfig(BaseModel):
 class JiraSearchRequest(BaseModel):
     config: JiraConfig
     filters: Optional[Dict[str, Any]] = {}
+    storyPointsFieldId: Optional[str] = 'customfield_10016'
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
