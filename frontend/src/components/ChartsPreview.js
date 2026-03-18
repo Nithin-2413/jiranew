@@ -419,7 +419,7 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                             <span className="text-sm font-medium text-slate-700">{percentage}%</span>
                           </div>
                         </td>
-                        <td className="text-slate-700">
+                        <td className="text-slate-600">
                           {topType ? `${topType[0]} (${topType[1]})` : '-'}
                         </td>
                       </tr>
