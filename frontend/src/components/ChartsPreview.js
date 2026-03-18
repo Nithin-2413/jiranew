@@ -227,11 +227,11 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
   return (
     <div className="space-y-6">
       {/* Issue Distribution */}
-      <div className="glass-panel p-6 rounded-2xl">
-        <h3 className="text-2xl font-bold mb-6 text-white">Issue Distribution</h3>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h3 className="text-2xl font-bold mb-6 text-slate-900">Issue Distribution</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div data-testid="chart-issue-type">
-            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">By Issue Type</h4>
+            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">By Issue Type</h4>
             <div className="chart-container">
               <Doughnut 
                 ref={(ref) => { if (ref) chartRefs.current.issueTypeChart = ref; }}
@@ -241,7 +241,7 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
             </div>
           </div>
           <div data-testid="chart-status">
-            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">By Status</h4>
+            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">By Status</h4>
             <div className="chart-container">
               <Bar 
                 ref={(ref) => { if (ref) chartRefs.current.statusChart = ref; }}
@@ -255,11 +255,11 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
 
       {/* Team Performance - ALL MEMBERS */}
       {allTeamMembers.length > 0 && (
-        <div className="glass-panel p-6 rounded-2xl">
-          <h3 className="text-2xl font-bold mb-6 text-white">Team Performance - All Members</h3>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <h3 className="text-2xl font-bold mb-6 text-slate-900">Team Performance - All Members</h3>
           <div data-testid="chart-team-points">
-            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">
-              Story Points by All Team Members ({allTeamMembers.length} members)
+            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">
+              Story Points by Team Member ({allTeamMembers.length} members)
             </h4>
             <div className="chart-container" style={{ height: Math.max(320, allTeamMembers.length * 30) + 'px' }}>
               <Bar 
