@@ -472,7 +472,7 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                   <td className="text-slate-700">{issue.assignee}</td>
                   <td className="text-center">
                     {issue.storyPoints > 0 ? (
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-sm">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold text-sm shadow">
                         {issue.storyPoints}
                       </span>
                     ) : (
