@@ -191,6 +191,15 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
         },
         borderColor: 'rgba(226, 232, 240, 0.2)',
         borderWidth: 1
+      },
+      datalabels: {
+        color: '#1E293B',
+        font: {
+          weight: 'bold',
+          size: 12
+        },
+        formatter: (value) => value > 0 ? value : '',
+        display: true
       }
     }
   };
