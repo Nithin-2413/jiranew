@@ -1,54 +1,25 @@
 .App {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.glass-panel {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  background: linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 50%, #E0F2FE 100%);
 }
 
 .metric-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: white;
+  border: 1px solid #E2E8F0;
   border-radius: 16px;
   padding: 1.5rem;
   transition: all 0.3s ease;
-  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .metric-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-  border-color: rgba(12, 158, 217, 0.5);
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #0C9ED9 0%, #0A85B6 100%);
-  color: white;
-  font-weight: 600;
-  padding: 0.75rem 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(12, 158, 217, 0.4);
-  transition: all 0.3s ease;
-  border: none;
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(12, 158, 217, 0.6);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
+  box-shadow: 0 12px 24px rgba(12, 158, 217, 0.15);
+  border-color: #0C9ED9;
 }
 
 .chart-container {
   position: relative;
-  height: 320px;
   width: 100%;
   padding: 1rem;
 }
@@ -56,10 +27,9 @@
 .loading-bar {
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: #E2E8F0;
   border-radius: 9999px;
   overflow: hidden;
-  position: relative;
 }
 
 .loading-bar-progress {
@@ -72,20 +42,15 @@
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .table-container {
   overflow-x: auto;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
+  background: white;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #E2E8F0;
 }
 
 .data-table {
@@ -94,28 +59,24 @@
 }
 
 .data-table th {
-  background: rgba(12, 158, 217, 0.2);
+  background: #F8FAFC;
   padding: 1rem;
   text-align: left;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #ffffff;
-  border-bottom: 2px solid rgba(12, 158, 217, 0.5);
+  color: #334155;
+  border-bottom: 2px solid #E2E8F0;
 }
 
 .data-table td {
   padding: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #F1F5F9;
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.data-table tbody tr {
-  transition: all 0.2s ease;
+  color: #475569;
 }
 
 .data-table tbody tr:hover {
-  background: rgba(12, 158, 217, 0.1);
+  background: #F8FAFC;
 }
 
 .status-badge {
@@ -126,58 +87,37 @@
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .status-open {
-  background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
-  color: #78350F;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  background: #FEF3C7;
+  color: #92400E;
 }
 
 .status-in-progress {
-  background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
-  color: #1E3A8A;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  background: #DBEAFE;
+  color: #1E40AF;
 }
 
 .status-resolved {
-  background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
-  color: #064E3B;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  background: #D1FAE5;
+  color: #065F46;
 }
 
 .status-closed {
-  background: linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%);
-  color: #1F2937;
-  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
+  background: #E5E7EB;
+  color: #374151;
 }
 
-.stat-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.analytics-card {
+  background: white;
+  border: 1px solid #E2E8F0;
   border-radius: 20px;
   padding: 2rem;
-  position: relative;
-  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #0C9ED9 0%, #764ba2 100%);
-}
-
-.filter-panel {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.08) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 20px;
-  padding: 2rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+.analytics-card:hover {
+  box-shadow: 0 8px 16px rgba(12, 158, 217, 0.1);
 }
