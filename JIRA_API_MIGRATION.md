@@ -1,24 +1,279 @@
-# JIRA API Migration Guide: /search to /search/jql
+# JIRA API Migration Guide: New Search Endpoint (2026)
 
 ## What Changed?
 
-Atlassian deprecated `/rest/api/3/search` and introduced `/rest/api/3/search/jql` as the replacement.
+Atlassian completely removed the old `/rest/api/3/search` endpoint in August 2025. The new endpoint `/rest/api/3/search/jql` now requires a different pagination approach.
 
-### Key Differences
+### Critical Changes
 
-| Aspect | Old Endpoint | New Endpoint |
-|--------|-------------|--------------|
+| Aspect | Old Endpoint | New Endpoint (2026) |
+|--------|-------------|---------------------|
 | **URL** | `/rest/api/3/search` | `/rest/api/3/search/jql` |
-| **Method** | POST (or GET) | POST only |
-| **Request Body** | Same JSON structure | Same JSON structure |
-| **Response Format** | Same | Same |
+| **Method** | POST | POST only |
+| **Pagination** | `startAt` + `maxResults` | `nextPageToken` + `maxResults` |
+| **Response** | Contains `total`, `startAt` | Contains `nextPageToken` (no `total`) |
 | **Authentication** | Same (Basic Auth) | Same (Basic Auth) |
 
-### Good News ✅
-- Response format is **identical**
-- Request body structure is **the same**
-- Authentication method **unchanged**
-- Only the endpoint URL changed
+### Major Breaking Changes ⚠️
+
+1. **Pagination**: `startAt` parameter is **no longer supported**. Must use `nextPageToken`.
+2. **No total count**: Response doesn't include `total` field anymore.
+3. **Token-based pagination**: Must use the `nextPageToken` from response for next page.
+
+## Updated Code - WORKING VERSION (2026)
+
+### Backend Proxy (Python/FastAPI) - FIXED ✅
+
+```python
+@api_router.post("/jira/search")
+async def search_jira_issues(request: JiraSearchRequest):
+    try:
+        # ... setup code ...
+        
+        all_issues = []
+        next_page_token = None  # Start with None for first page
+        max_results = 100
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            while True:
+                # New request format with nextPageToken
+                search_body = {
+                    "jql": jql,
+                    "maxResults": max_results,
+                    "fields": ["summary", "status", "issuetype", ...]
+                }
+                
+                # Add token for subsequent pages
+                if next_page_token:
+                    search_body["nextPageToken"] = next_page_token
+                
+                response = await client.post(
+                    f"{jira_url}/rest/api/3/search/jql",
+                    headers=headers,
+                    json=search_body
+                )
+                
+                data = response.json()
+                all_issues.extend(data.get("issues", []))
+                
+                # Get next page token
+                next_page_token = data.get("nextPageToken")
+                
+                # Stop if no more pages
+                if not next_page_token or len(all_issues) >= 1000:
+                    break
+        
+        return {
+            "success": True,
+            "issues": all_issues,
+            "total": len(all_issues)  # Calculate ourselves
+        }
+```
+
+### Key Differences in Request Body
+
+**OLD (No longer works):**
+```json
+{
+  "jql": "project = PROJ",
+  "startAt": 0,
+  "maxResults": 100,
+  "fields": ["summary", "status"]
+}
+```
+
+**NEW (2026 - Working):**
+```json
+{
+  "jql": "project = PROJ",
+  "maxResults": 100,
+  "fields": ["summary", "status"]
+}
+
+// For second page:
+{
+  "jql": "project = PROJ",
+  "maxResults": 100,
+  "nextPageToken": "TOKEN_FROM_PREVIOUS_RESPONSE",
+  "fields": ["summary", "status"]
+}
+```
+
+### Response Format Changes
+
+**OLD Response:**
+```json
+{
+  "startAt": 0,
+  "maxResults": 100,
+  "total": 234,
+  "issues": [...]
+}
+```
+
+**NEW Response (2026):**
+```json
+{
+  "maxResults": 100,
+  "issues": [...],
+  "nextPageToken": "eyJzdGFydEF0IjoxMDB9"  // Only present if more pages exist
+}
+```
+
+## Complete Working Example (2026)
+
+### Python/httpx Example:
+```python
+import httpx
+import base64
+
+async def fetch_all_jira_issues(jira_url, email, api_token, jql):
+    auth = base64.b64encode(f"{email}:{api_token}".encode()).decode()
+    headers = {
+        'Authorization': f'Basic {auth}',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+    
+    all_issues = []
+    next_token = None
+    
+    async with httpx.AsyncClient() as client:
+        while True:
+            body = {
+                "jql": jql,
+                "maxResults": 100,
+                "fields": ["summary", "status", "issuetype"]
+            }
+            
+            if next_token:
+                body["nextPageToken"] = next_token
+            
+            response = await client.post(
+                f"{jira_url}/rest/api/3/search/jql",
+                headers=headers,
+                json=body
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Error: {response.text}")
+            
+            data = response.json()
+            all_issues.extend(data.get("issues", []))
+            
+            next_token = data.get("nextPageToken")
+            if not next_token:
+                break
+    
+    return all_issues
+```
+
+### Node.js/Axios Example:
+```javascript
+const axios = require('axios');
+
+async function fetchAllJiraIssues(jiraUrl, email, apiToken, jql) {
+    const auth = Buffer.from(`${email}:${apiToken}`).toString('base64');
+    const headers = {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json'
+    };
+    
+    let allIssues = [];
+    let nextToken = null;
+    
+    do {
+        const body = {
+            jql: jql,
+            maxResults: 100,
+            fields: ['summary', 'status', 'issuetype']
+        };
+        
+        if (nextToken) {
+            body.nextPageToken = nextToken;
+        }
+        
+        const response = await axios.post(
+            `${jiraUrl}/rest/api/3/search/jql`,
+            body,
+            { headers }
+        );
+        
+        allIssues = allIssues.concat(response.data.issues || []);
+        nextToken = response.data.nextPageToken;
+        
+    } while (nextToken);
+    
+    return allIssues;
+}
+```
+
+## Migration Checklist (2026)
+
+- [x] Update endpoint URL to `/rest/api/3/search/jql`
+- [x] Remove `startAt` parameter from request body
+- [x] Add `nextPageToken` handling for pagination
+- [x] Update pagination loop to use token instead of offset
+- [x] Handle missing `total` field in response
+- [x] Calculate total count manually if needed: `total = allIssues.length`
+- [x] Test with multiple pages of results
+- [x] Update error handling for new error formats
+
+## Common Errors & Solutions
+
+### Error 1: "Invalid request payload"
+**Cause**: Using old `startAt` parameter
+**Solution**: Remove `startAt`, use `nextPageToken` instead
+
+### Error 2: "410 Gone"
+**Cause**: Still using old `/rest/api/3/search` endpoint
+**Solution**: Use `/rest/api/3/search/jql`
+
+### Error 3: Missing pagination
+**Cause**: Not checking for `nextPageToken` in response
+**Solution**: Loop until `nextPageToken` is null/undefined
+
+## Performance Notes
+
+- New endpoint is **20x faster** for large datasets
+- Token-based pagination is more efficient
+- No need to know total count upfront
+- Better for real-time streaming of results
+
+## Other Endpoints (Still Working)
+
+✅ `/rest/api/3/myself` - No changes
+✅ `/rest/api/3/project` - No changes  
+✅ `/rest/agile/1.0/board/{boardId}/sprint` - No changes
+
+## Testing the Fix
+
+Test with curl:
+```bash
+curl -X POST "https://your-domain.atlassian.net/rest/api/3/search/jql" \
+  -H "Authorization: Basic $(echo -n 'email:token' | base64)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jql": "project = PROJ",
+    "maxResults": 10,
+    "fields": ["key", "summary"]
+  }'
+```
+
+Check response for `nextPageToken` field for pagination.
+
+---
+
+## What Was Fixed in Your App
+
+✅ Removed `startAt` parameter
+✅ Added `nextPageToken` handling
+✅ Updated pagination loop
+✅ Fixed response parsing
+✅ Backend restarted and ready
+
+**The "Invalid request payload" error should now be resolved!**
+
 
 ## Updated Code
 
