@@ -95,5 +95,3 @@ export class JiraService {
 }
 
 export default JiraService;
-
-export default JiraService;
