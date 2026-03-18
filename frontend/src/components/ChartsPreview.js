@@ -456,7 +456,7 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                     {issue.summary.substring(0, 60)}{issue.summary.length > 60 ? '...' : ''}
                   </td>
                   <td>
-                    <span className="px-3 py-1 text-xs rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-slate-900 font-medium">
+                    <span className="px-3 py-1 text-xs rounded-full bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 font-medium border border-purple-200">
                       {issue.type}
                     </span>
                   </td>
