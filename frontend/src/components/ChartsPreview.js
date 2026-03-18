@@ -410,13 +410,13 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                         <td className="font-bold text-slate-900">{count}</td>
                         <td>
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
                               <div 
                                 className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
                                 style={{ width: `${percentage}%` }}
                               />
                             </div>
-                            <span className="text-sm font-medium text-slate-900">{percentage}%</span>
+                            <span className="text-sm font-medium text-slate-700">{percentage}%</span>
                           </div>
                         </td>
                         <td className="text-slate-700">
