@@ -403,7 +403,7 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                     return (
                       <tr key={label}>
                         <td className="font-semibold">
-                          <span className="inline-block px-3 py-1 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full text-sm">
+                          <span className="inline-block px-3 py-1 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-full text-sm text-slate-700">
                             {label}
                           </span>
                         </td>
