@@ -20,6 +20,15 @@ export class JiraService {
     };
   }
 
+  getAuthHeaders() {
+    const auth = btoa(`${this.email}:${this.apiToken}`);
+    return {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+  }
+
   async testConnection() {
     try {
       const response = await axios.post(
