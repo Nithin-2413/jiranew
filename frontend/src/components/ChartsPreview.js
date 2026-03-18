@@ -482,12 +482,12 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                   <td>
                     <div className="flex flex-wrap gap-1">
                       {issue.labels.slice(0, 2).map(label => (
-                        <span key={label} className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-700">
+                        <span key={label} className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600 border border-slate-200">
                           {label}
                         </span>
                       ))}
                       {issue.labels.length > 2 && (
-                        <span className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-700">
+                        <span className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600 border border-slate-200">
                           +{issue.labels.length - 2}
                         </span>
                       )}
