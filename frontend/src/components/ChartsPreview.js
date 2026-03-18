@@ -380,8 +380,8 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
 
       {/* Label Analysis */}
       {metrics.labelMetrics.topLabels.length > 0 && (
-        <div className="glass-panel p-6 rounded-2xl">
-          <h3 className="text-2xl font-bold mb-6 text-white">Label Analysis</h3>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <h3 className="text-2xl font-bold mb-6 text-slate-900">Label Analysis</h3>
           <div data-testid="labels-table">
             <div className="table-container">
               <table className="data-table">
@@ -407,19 +407,19 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                             {label}
                           </span>
                         </td>
-                        <td className="font-bold text-white">{count}</td>
+                        <td className="font-bold text-slate-900">{count}</td>
                         <td>
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-white/10 rounded-full h-2 overflow-hidden">
+                            <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
                               <div 
                                 className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
                                 style={{ width: `${percentage}%` }}
                               />
                             </div>
-                            <span className="text-sm font-medium text-white">{percentage}%</span>
+                            <span className="text-sm font-medium text-slate-900">{percentage}%</span>
                           </div>
                         </td>
-                        <td className="text-white/70">
+                        <td className="text-slate-700">
                           {topType ? `${topType[0]} (${topType[1]})` : '-'}
                         </td>
                       </tr>
