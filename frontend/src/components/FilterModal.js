@@ -123,7 +123,7 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
             <Button
               onClick={onClose}
               variant="outline"
-              className="flex-1 border-slate-600 text-white hover:bg-slate-700"
+              className="flex-1 border-slate-600 text-slate-900 hover:bg-slate-100"
             >
               Cancel
             </Button>
