@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card } from './ui/card';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,9 +9,10 @@ import {
   Legend,
   ArcElement,
   PointElement,
-  LineElement
+  LineElement,
+  RadialLinearScale
 } from 'chart.js';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { Bar, Doughnut, Line, Radar, PolarArea } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
@@ -23,7 +23,8 @@ ChartJS.register(
   Legend,
   ArcElement,
   PointElement,
-  LineElement
+  LineElement,
+  RadialLinearScale
 );
 
 const CHART_COLORS = {
@@ -34,8 +35,18 @@ const CHART_COLORS = {
   purple: '#8B5CF6',
   blue: '#3B82F6',
   teal: '#14B8A6',
-  orange: '#F97316'
+  orange: '#F97316',
+  pink: '#EC4899',
+  indigo: '#6366F1',
+  cyan: '#06B6D4',
+  lime: '#84CC16'
 };
+
+const VIBRANT_COLORS = [
+  '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+  '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384',
+  '#36A2EB', '#FFCE56'
+];
 
 const ChartsPreview = ({ metrics, chartRefs }) => {
   // Issue Type Chart Data
@@ -43,14 +54,9 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
     labels: Object.keys(metrics.volumeMetrics.byType),
     datasets: [{
       data: Object.values(metrics.volumeMetrics.byType),
-      backgroundColor: [
-        CHART_COLORS.primary,
-        CHART_COLORS.success,
-        CHART_COLORS.warning,
-        CHART_COLORS.purple,
-        CHART_COLORS.blue
-      ],
-      borderWidth: 0
+      backgroundColor: VIBRANT_COLORS,
+      borderWidth: 0,
+      hoverOffset: 10
     }]
   };
 
@@ -60,19 +66,21 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
     datasets: [{
       label: 'Issues',
       data: Object.values(metrics.volumeMetrics.byStatus),
-      backgroundColor: CHART_COLORS.primary,
-      borderRadius: 6
+      backgroundColor: VIBRANT_COLORS,
+      borderRadius: 8,
+      borderSkipped: false
     }]
   };
 
-  // Team Performance Chart Data
+  // ALL Team Members - Story Points
+  const allTeamMembers = Object.keys(metrics.teamMetrics.pointsByAssignee);
   const teamData = {
-    labels: Object.keys(metrics.teamMetrics.pointsByAssignee).slice(0, 10),
+    labels: allTeamMembers,
     datasets: [{
       label: 'Story Points',
-      data: Object.values(metrics.teamMetrics.pointsByAssignee).slice(0, 10),
+      data: allTeamMembers.map(member => metrics.teamMetrics.pointsByAssignee[member] || 0),
       backgroundColor: CHART_COLORS.purple,
-      borderRadius: 6
+      borderRadius: 8
     }]
   };
 
@@ -81,29 +89,70 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
     labels: Object.keys(metrics.qualityMetrics.bugsByPriority),
     datasets: [{
       data: Object.values(metrics.qualityMetrics.bugsByPriority),
-      backgroundColor: [
-        CHART_COLORS.error,
-        CHART_COLORS.warning,
-        CHART_COLORS.blue,
-        CHART_COLORS.success,
-        '#9CA3AF'
-      ],
+      backgroundColor: VIBRANT_COLORS,
       borderWidth: 0
     }]
   };
 
-  // Story Points by Status
+  // Story Points by Status - Fixed to show data
+  const pointsByStatusLabels = Object.keys(metrics.storyPointsMetrics.pointsByStatus);
   const pointsByStatusData = {
-    labels: Object.keys(metrics.storyPointsMetrics.pointsByStatus),
+    labels: pointsByStatusLabels.length > 0 ? pointsByStatusLabels : ['No Data'],
     datasets: [{
       label: 'Story Points',
-      data: Object.values(metrics.storyPointsMetrics.pointsByStatus),
-      backgroundColor: [
-        CHART_COLORS.success,
-        CHART_COLORS.primary,
-        CHART_COLORS.warning
-      ],
+      data: pointsByStatusLabels.length > 0 
+        ? Object.values(metrics.storyPointsMetrics.pointsByStatus)
+        : [0],
+      backgroundColor: pointsByStatusLabels.length > 0
+        ? VIBRANT_COLORS.slice(0, pointsByStatusLabels.length)
+        : ['#9CA3AF'],
+      borderRadius: 8
+    }]
+  };
+
+  // Issue Type vs Label Analysis
+  const issueTypes = Object.keys(metrics.advancedAnalytics.issueTypeVsLabel);
+  const allLabelsSet = new Set();
+  issueTypes.forEach(type => {
+    Object.keys(metrics.advancedAnalytics.issueTypeVsLabel[type]).forEach(label => {
+      allLabelsSet.add(label);
+    });
+  });
+  const allLabels = Array.from(allLabelsSet).slice(0, 10);
+
+  const issueTypeVsLabelData = {
+    labels: allLabels,
+    datasets: issueTypes.map((type, idx) => ({
+      label: type,
+      data: allLabels.map(label => metrics.advancedAnalytics.issueTypeVsLabel[type]?.[label] || 0),
+      backgroundColor: VIBRANT_COLORS[idx % VIBRANT_COLORS.length],
       borderRadius: 6
+    }))
+  };
+
+  // Test Execution Metrics
+  const testData = {
+    labels: ['Passed', 'Failed', 'Blocked'],
+    datasets: [{
+      data: [
+        metrics.advancedAnalytics.testMetrics.passed,
+        metrics.advancedAnalytics.testMetrics.failed,
+        metrics.advancedAnalytics.testMetrics.blocked
+      ],
+      backgroundColor: [CHART_COLORS.success, CHART_COLORS.error, CHART_COLORS.warning],
+      borderWidth: 0
+    }]
+  };
+
+  // Subtask Analysis
+  const subtaskLabels = Object.keys(metrics.advancedAnalytics.subtaskMetrics.subtasksByLabel).slice(0, 10);
+  const subtaskData = {
+    labels: subtaskLabels,
+    datasets: [{
+      label: 'Subtasks Count',
+      data: subtaskLabels.map(label => metrics.advancedAnalytics.subtaskMetrics.subtasksByLabel[label]),
+      backgroundColor: CHART_COLORS.cyan,
+      borderRadius: 8
     }]
   };
 
@@ -116,23 +165,30 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
         position: 'bottom',
         labels: {
           font: {
-            family: 'Inter'
+            family: 'Inter',
+            size: 11
           },
-          padding: 15
+          padding: 15,
+          color: 'rgba(255, 255, 255, 0.9)',
+          usePointStyle: true,
+          pointStyle: 'circle'
         }
       },
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
         padding: 12,
-        cornerRadius: 6,
+        cornerRadius: 8,
         titleFont: {
           size: 13,
-          family: 'Inter'
+          family: 'Inter',
+          weight: 600
         },
         bodyFont: {
           size: 12,
           family: 'Inter'
-        }
+        },
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1
       }
     }
   };
@@ -143,12 +199,13 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)'
+          color: 'rgba(255, 255, 255, 0.1)'
         },
         ticks: {
           font: {
             family: 'Inter'
-          }
+          },
+          color: 'rgba(255, 255, 255, 0.7)'
         }
       },
       x: {
@@ -158,7 +215,10 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
         ticks: {
           font: {
             family: 'Inter'
-          }
+          },
+          color: 'rgba(255, 255, 255, 0.7)',
+          maxRotation: 45,
+          minRotation: 0
         }
       }
     }
@@ -167,12 +227,12 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
   return (
     <div className="space-y-6">
       {/* Issue Distribution */}
-      <Card className="p-6">
-        <h3 className="text-xl font-semibold mb-6 text-slate-900">Issue Distribution</h3>
+      <div className="glass-panel p-6 rounded-2xl">
+        <h3 className="text-2xl font-bold mb-6 text-white">Issue Distribution</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div data-testid="chart-issue-type">
-            <h4 className="text-sm font-medium text-slate-600 mb-3">By Issue Type</h4>
-            <div className="chart-container" style={{ height: '280px' }}>
+            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">By Issue Type</h4>
+            <div className="chart-container">
               <Doughnut 
                 ref={(ref) => { if (ref) chartRefs.current.issueTypeChart = ref; }}
                 data={issueTypeData} 
@@ -181,8 +241,8 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
             </div>
           </div>
           <div data-testid="chart-status">
-            <h4 className="text-sm font-medium text-slate-600 mb-3">By Status</h4>
-            <div className="chart-container" style={{ height: '280px' }}>
+            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">By Status</h4>
+            <div className="chart-container">
               <Bar 
                 ref={(ref) => { if (ref) chartRefs.current.statusChart = ref; }}
                 data={statusData} 
@@ -191,59 +251,137 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
-      {/* Team Performance */}
-      <Card className="p-6">
-        <h3 className="text-xl font-semibold mb-6 text-slate-900">Team Performance</h3>
-        <div data-testid="chart-team-points">
-          <h4 className="text-sm font-medium text-slate-600 mb-3">Story Points by Team Member (Top 10)</h4>
-          <div className="chart-container" style={{ height: '350px' }}>
-            <Bar 
-              ref={(ref) => { if (ref) chartRefs.current.teamPointsChart = ref; }}
-              data={teamData} 
-              options={{
-                ...barChartOptions,
-                indexAxis: 'y'
-              }} 
-            />
+      {/* Team Performance - ALL MEMBERS */}
+      {allTeamMembers.length > 0 && (
+        <div className="glass-panel p-6 rounded-2xl">
+          <h3 className="text-2xl font-bold mb-6 text-white">Team Performance - All Members</h3>
+          <div data-testid="chart-team-points">
+            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">
+              Story Points by All Team Members ({allTeamMembers.length} members)
+            </h4>
+            <div className="chart-container" style={{ height: Math.max(320, allTeamMembers.length * 30) + 'px' }}>
+              <Bar 
+                ref={(ref) => { if (ref) chartRefs.current.teamPointsChart = ref; }}
+                data={teamData} 
+                options={{
+                  ...barChartOptions,
+                  indexAxis: 'y',
+                  scales: {
+                    x: {
+                      ...barChartOptions.scales.y
+                    },
+                    y: {
+                      ...barChartOptions.scales.x
+                    }
+                  }
+                }} 
+              />
+            </div>
           </div>
         </div>
-      </Card>
+      )}
 
       {/* Bug Analysis & Story Points */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h3 className="text-xl font-semibold mb-6 text-slate-900">Bug Analysis</h3>
+        <div className="glass-panel p-6 rounded-2xl">
+          <h3 className="text-2xl font-bold mb-6 text-white">Bug Analysis</h3>
           <div data-testid="chart-bug-priority">
-            <h4 className="text-sm font-medium text-slate-600 mb-3">Bugs by Priority</h4>
-            <div className="chart-container" style={{ height: '280px' }}>
+            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">Bugs by Priority</h4>
+            <div className="chart-container">
               <Doughnut 
                 data={bugPriorityData} 
                 options={chartOptions} 
               />
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-6">
-          <h3 className="text-xl font-semibold mb-6 text-slate-900">Story Points</h3>
+        <div className="glass-panel p-6 rounded-2xl">
+          <h3 className="text-2xl font-bold mb-6 text-white">Story Points</h3>
           <div data-testid="chart-points-status">
-            <h4 className="text-sm font-medium text-slate-600 mb-3">Points by Status</h4>
-            <div className="chart-container" style={{ height: '280px' }}>
+            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">Points by Status</h4>
+            <div className="chart-container">
               <Bar 
                 data={pointsByStatusData} 
                 options={barChartOptions} 
               />
             </div>
           </div>
-        </Card>
+        </div>
       </div>
+
+      {/* Advanced Analytics - Issue Type vs Label */}
+      {allLabels.length > 0 && (
+        <div className="glass-panel p-6 rounded-2xl">
+          <h3 className="text-2xl font-bold mb-6 text-white">Issue Type vs Label Analysis</h3>
+          <div data-testid="chart-type-label">
+            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">
+              Correlation between Issue Types and Labels
+            </h4>
+            <div className="chart-container" style={{ height: '400px' }}>
+              <Bar 
+                data={issueTypeVsLabelData} 
+                options={{
+                  ...barChartOptions,
+                  plugins: {
+                    ...barChartOptions.plugins,
+                    legend: {
+                      ...barChartOptions.plugins.legend,
+                      position: 'top'
+                    }
+                  }
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Test Execution & Subtask Analysis */}
+      {(metrics.advancedAnalytics.testMetrics.total > 0 || subtaskLabels.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {metrics.advancedAnalytics.testMetrics.total > 0 && (
+            <div className="glass-panel p-6 rounded-2xl">
+              <h3 className="text-2xl font-bold mb-6 text-white">Test Execution</h3>
+              <div data-testid="chart-test-execution">
+                <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">
+                  Test Results ({metrics.advancedAnalytics.testMetrics.total} total)
+                </h4>
+                <div className="chart-container">
+                  <Doughnut 
+                    data={testData} 
+                    options={chartOptions} 
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {subtaskLabels.length > 0 && (
+            <div className="glass-panel p-6 rounded-2xl">
+              <h3 className="text-2xl font-bold mb-6 text-white">Subtask Analysis</h3>
+              <div data-testid="chart-subtask-label">
+                <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">
+                  Subtasks by Label
+                </h4>
+                <div className="chart-container">
+                  <Bar 
+                    data={subtaskData} 
+                    options={barChartOptions} 
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Label Analysis */}
       {metrics.labelMetrics.topLabels.length > 0 && (
-        <Card className="p-6">
-          <h3 className="text-xl font-semibold mb-6 text-slate-900">Label Analysis</h3>
+        <div className="glass-panel p-6 rounded-2xl">
+          <h3 className="text-2xl font-bold mb-6 text-white">Label Analysis</h3>
           <div data-testid="labels-table">
             <div className="table-container">
               <table className="data-table">
@@ -252,17 +390,38 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                     <th>Label</th>
                     <th>Count</th>
                     <th>Percentage</th>
+                    <th>Top Issue Types</th>
                   </tr>
                 </thead>
                 <tbody>
                   {metrics.labelMetrics.topLabels.map(([label, count]) => {
                     const total = metrics.labelMetrics.topLabels.reduce((sum, [, c]) => sum + c, 0);
                     const percentage = ((count / total) * 100).toFixed(1);
+                    const types = metrics.labelMetrics.labelByIssueType[label] || {};
+                    const topType = Object.entries(types).sort((a, b) => b[1] - a[1])[0];
+                    
                     return (
                       <tr key={label}>
-                        <td className="font-medium">{label}</td>
-                        <td>{count}</td>
-                        <td>{percentage}%</td>
+                        <td className="font-semibold">
+                          <span className="inline-block px-3 py-1 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full text-sm">
+                            {label}
+                          </span>
+                        </td>
+                        <td className="font-bold text-white">{count}</td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-white/10 rounded-full h-2 overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                            <span className="text-sm font-medium text-white">{percentage}%</span>
+                          </div>
+                        </td>
+                        <td className="text-white/70">
+                          {topType ? `${topType[0]} (${topType[1]})` : '-'}
+                        </td>
                       </tr>
                     );
                   })}
@@ -270,12 +429,12 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
               </table>
             </div>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Detailed Issues Table */}
-      <Card className="p-6">
-        <h3 className="text-xl font-semibold mb-6 text-slate-900">Recent Issues</h3>
+      <div className="glass-panel p-6 rounded-2xl">
+        <h3 className="text-2xl font-bold mb-6 text-white">Recent Issues</h3>
         <div data-testid="issues-table" className="table-container">
           <table className="data-table">
             <thead>
@@ -286,15 +445,18 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                 <th>Status</th>
                 <th>Assignee</th>
                 <th>Points</th>
+                <th>Labels</th>
               </tr>
             </thead>
             <tbody>
-              {metrics.detailedIssues.slice(0, 20).map((issue) => (
+              {metrics.detailedIssues.slice(0, 30).map((issue) => (
                 <tr key={issue.key}>
-                  <td className="font-medium text-[#0C9ED9]">{issue.key}</td>
-                  <td>{issue.summary.substring(0, 50)}{issue.summary.length > 50 ? '...' : ''}</td>
+                  <td className="font-bold text-cyan-400">{issue.key}</td>
+                  <td className="max-w-xs truncate text-white">
+                    {issue.summary.substring(0, 60)}{issue.summary.length > 60 ? '...' : ''}
+                  </td>
                   <td>
-                    <span className="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-700">
+                    <span className="px-3 py-1 text-xs rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white font-medium">
                       {issue.type}
                     </span>
                   </td>
@@ -307,14 +469,36 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                       {issue.status}
                     </span>
                   </td>
-                  <td className="text-slate-600">{issue.assignee}</td>
-                  <td className="text-center font-medium">{issue.storyPoints || '-'}</td>
+                  <td className="text-white/80">{issue.assignee}</td>
+                  <td className="text-center">
+                    {issue.storyPoints > 0 ? (
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-sm">
+                        {issue.storyPoints}
+                      </span>
+                    ) : (
+                      <span className="text-white/30">-</span>
+                    )}
+                  </td>
+                  <td>
+                    <div className="flex flex-wrap gap-1">
+                      {issue.labels.slice(0, 2).map(label => (
+                        <span key={label} className="px-2 py-0.5 text-xs rounded bg-white/10 text-white/70">
+                          {label}
+                        </span>
+                      ))}
+                      {issue.labels.length > 2 && (
+                        <span className="px-2 py-0.5 text-xs rounded bg-white/10 text-white/70">
+                          +{issue.labels.length - 2}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
