@@ -285,10 +285,10 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
 
       {/* Bug Analysis & Story Points */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="glass-panel p-6 rounded-2xl">
-          <h3 className="text-2xl font-bold mb-6 text-white">Bug Analysis</h3>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <h3 className="text-2xl font-bold mb-6 text-slate-900">Bug Analysis</h3>
           <div data-testid="chart-bug-priority">
-            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">Bugs by Priority</h4>
+            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Bugs by Priority</h4>
             <div className="chart-container">
               <Doughnut 
                 data={bugPriorityData} 
@@ -298,10 +298,10 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
           </div>
         </div>
 
-        <div className="glass-panel p-6 rounded-2xl">
-          <h3 className="text-2xl font-bold mb-6 text-white">Story Points</h3>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <h3 className="text-2xl font-bold mb-6 text-slate-900">Story Points</h3>
           <div data-testid="chart-points-status">
-            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">Points by Status</h4>
+            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Points by Status</h4>
             <div className="chart-container">
               <Bar 
                 data={pointsByStatusData} 
@@ -314,10 +314,10 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
 
       {/* Advanced Analytics - Issue Type vs Label */}
       {allLabels.length > 0 && (
-        <div className="glass-panel p-6 rounded-2xl">
-          <h3 className="text-2xl font-bold mb-6 text-white">Issue Type vs Label Analysis</h3>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <h3 className="text-2xl font-bold mb-6 text-slate-900">Issue Type vs Label Analysis</h3>
           <div data-testid="chart-type-label">
-            <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">
+            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">
               Correlation between Issue Types and Labels
             </h4>
             <div className="chart-container" style={{ height: '400px' }}>
@@ -343,10 +343,10 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
       {(metrics.advancedAnalytics.testMetrics.total > 0 || subtaskLabels.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {metrics.advancedAnalytics.testMetrics.total > 0 && (
-            <div className="glass-panel p-6 rounded-2xl">
-              <h3 className="text-2xl font-bold mb-6 text-white">Test Execution</h3>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h3 className="text-2xl font-bold mb-6 text-slate-900">Test Execution</h3>
               <div data-testid="chart-test-execution">
-                <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">
+                <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">
                   Test Results ({metrics.advancedAnalytics.testMetrics.total} total)
                 </h4>
                 <div className="chart-container">
@@ -360,10 +360,10 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
           )}
 
           {subtaskLabels.length > 0 && (
-            <div className="glass-panel p-6 rounded-2xl">
-              <h3 className="text-2xl font-bold mb-6 text-white">Subtask Analysis</h3>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h3 className="text-2xl font-bold mb-6 text-slate-900">Subtask Analysis</h3>
               <div data-testid="chart-subtask-label">
-                <h4 className="text-sm font-semibold text-white/80 mb-3 uppercase tracking-wide">
+                <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">
                   Subtasks by Label
                 </h4>
                 <div className="chart-container">
