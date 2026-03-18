@@ -86,8 +86,8 @@ const MetricsCards = ({ metrics }) => {
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-white/70 mb-1">{metric.title}</p>
-                <p className="text-3xl font-bold text-white">{metric.value}</p>
+                <p className="text-sm font-medium text-slate-600 mb-1">{metric.title}</p>
+                <p className="text-3xl font-bold text-slate-900">{metric.value}</p>
               </div>
               <div className={`bg-gradient-to-br ${metric.gradient} p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform`}>
                 <Icon className="text-white" size={24} />
