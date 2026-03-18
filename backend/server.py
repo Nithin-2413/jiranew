@@ -102,7 +102,7 @@ async def test_jira_connection(config: JiraConfig):
 
 @api_router.post("/jira/search")
 async def search_jira_issues(request: JiraSearchRequest):
-    """Proxy endpoint to search JIRA issues"""
+    """Proxy endpoint to search JIRA issues using the new search/jql endpoint"""
     try:
         config = request.config
         filters = request.filters
@@ -140,18 +140,16 @@ async def search_jira_issues(request: JiraSearchRequest):
             
         jql = ' AND '.join(conditions) + ' ORDER BY created DESC'
         
-        # Fetch all issues (paginated)
+        # Fetch all issues using new pagination with nextPageToken
         all_issues = []
-        start_at = 0
+        next_page_token = None
         max_results = 100
-        total = 0
         
         async with httpx.AsyncClient(timeout=60.0) as client:
             while True:
-                # Updated to use new /rest/api/3/search/jql endpoint
+                # Use the new API format with nextPageToken
                 search_body = {
                     "jql": jql,
-                    "startAt": start_at,
                     "maxResults": max_results,
                     "fields": [
                         "summary",
@@ -169,6 +167,10 @@ async def search_jira_issues(request: JiraSearchRequest):
                     ]
                 }
                 
+                # Add pagination token if exists
+                if next_page_token:
+                    search_body["nextPageToken"] = next_page_token
+                
                 # Use the new search/jql endpoint
                 response = await client.post(
                     f"{jira_url}/rest/api/3/search/jql",
@@ -178,24 +180,27 @@ async def search_jira_issues(request: JiraSearchRequest):
                 
                 if response.status_code != 200:
                     error_data = response.json() if response.text else {}
+                    error_msg = error_data.get("errorMessages", ["Failed to fetch issues"])[0] if error_data.get("errorMessages") else "Failed to fetch issues"
                     return {
                         "success": False,
-                        "error": error_data.get("errorMessages", ["Failed to fetch issues"])[0] if error_data.get("errorMessages") else "Failed to fetch issues"
+                        "error": error_msg
                     }
                 
                 data = response.json()
-                all_issues.extend(data.get("issues", []))
-                total = data.get("total", 0)
-                start_at += max_results
+                issues = data.get("issues", [])
+                all_issues.extend(issues)
                 
-                # Stop if we've fetched all issues or hit safety limit
-                if len(all_issues) >= total or start_at >= 1000:
+                # Get next page token for pagination
+                next_page_token = data.get("nextPageToken")
+                
+                # Stop if no more pages or hit safety limit
+                if not next_page_token or len(all_issues) >= 1000:
                     break
         
         return {
             "success": True,
             "issues": all_issues,
-            "total": total
+            "total": len(all_issues)
         }
                 
     except httpx.TimeoutException:
