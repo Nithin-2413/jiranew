@@ -107,6 +107,7 @@ async def search_jira_issues(request: JiraSearchRequest):
     try:
         config = request.config
         filters = request.filters
+        story_points_field = request.storyPointsFieldId or 'customfield_10016'
         
         auth_string = f"{config.email}:{config.apiToken}"
         auth_bytes = auth_string.encode('utf-8')
@@ -148,7 +149,7 @@ async def search_jira_issues(request: JiraSearchRequest):
         
         async with httpx.AsyncClient(timeout=60.0) as client:
             while True:
-                # Use the new API format with nextPageToken
+                # Use the new API format with nextPageToken and dynamic story points field
                 search_body = {
                     "jql": jql,
                     "maxResults": max_results,
@@ -163,7 +164,7 @@ async def search_jira_issues(request: JiraSearchRequest):
                         "labels",
                         "subtasks",
                         "parent",
-                        "customfield_10016",  # Story points
+                        story_points_field,  # Use dynamic field ID
                         "sprint"
                     ]
                 }
@@ -189,6 +190,12 @@ async def search_jira_issues(request: JiraSearchRequest):
                 
                 data = response.json()
                 issues = data.get("issues", [])
+                
+                # Normalize the story points field to a standard field name
+                for issue in issues:
+                    if story_points_field in issue.get("fields", {}):
+                        issue["fields"]["customfield_10016"] = issue["fields"][story_points_field]
+                
                 all_issues.extend(issues)
                 
                 # Get next page token for pagination
@@ -198,10 +205,13 @@ async def search_jira_issues(request: JiraSearchRequest):
                 if not next_page_token or len(all_issues) >= 1000:
                     break
         
+        logger.info(f"Fetched {len(all_issues)} issues with story points field: {story_points_field}")
+        
         return {
             "success": True,
             "issues": all_issues,
-            "total": len(all_issues)
+            "total": len(all_issues),
+            "storyPointsField": story_points_field
         }
                 
     except httpx.TimeoutException:
