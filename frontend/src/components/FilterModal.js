@@ -63,10 +63,10 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[650px] bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white max-h-[85vh] overflow-y-auto" data-testid="filter-modal">
+      <DialogContent className="sm:max-w-[650px] bg-white border-slate-200 max-h-[85vh] overflow-y-auto" data-testid="filter-modal">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
-            <FilterIcon className="text-cyan-400" size={22} />
+          <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <FilterIcon className="text-cyan-600" size={22} />
             Configure Filters
           </DialogTitle>
         </DialogHeader>
@@ -74,31 +74,31 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
         <div className="space-y-6 mt-4">
           {/* Date Range */}
           <div className="space-y-4">
-            <Label className="text-slate-200 font-semibold text-sm uppercase tracking-wide flex items-center gap-2">
-              <Calendar size={16} className="text-cyan-400" />
+            <Label className="text-slate-700 font-semibold text-sm uppercase tracking-wide flex items-center gap-2">
+              <Calendar size={16} className="text-cyan-600" />
               Date Range
             </Label>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="start-date" className="text-slate-400 text-xs mb-2 block">Start Date</Label>
+                <Label htmlFor="start-date" className="text-slate-500 text-xs mb-2 block">Start Date</Label>
                 <Input
                   id="start-date"
                   data-testid="start-date-input"
                   type="date"
                   value={localFilters.startDate}
                   onChange={(e) => setLocalFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="bg-slate-800/50 border-slate-600 text-white focus:border-cyan-500"
+                  className="bg-white border-slate-300 text-slate-900 focus:border-cyan-500"
                 />
               </div>
               <div>
-                <Label htmlFor="end-date" className="text-slate-400 text-xs mb-2 block">End Date</Label>
+                <Label htmlFor="end-date" className="text-slate-500 text-xs mb-2 block">End Date</Label>
                 <Input
                   id="end-date"
                   data-testid="end-date-input"
                   type="date"
                   value={localFilters.endDate}
                   onChange={(e) => setLocalFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                  className="bg-slate-800/50 border-slate-600 text-white focus:border-cyan-500"
+                  className="bg-white border-slate-300 text-slate-900 focus:border-cyan-500"
                 />
               </div>
             </div>
@@ -106,7 +106,7 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
 
           {/* Quick Presets */}
           <div>
-            <Label className="text-slate-400 text-xs uppercase tracking-wide mb-3 block">Quick Presets</Label>
+            <Label className="text-slate-500 text-xs uppercase tracking-wide mb-3 block">Quick Presets</Label>
             <div className="grid grid-cols-3 gap-2">
               {Object.values(datePresets).map((preset) => (
                 <Button
@@ -114,7 +114,7 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
                   data-testid={`preset-${preset.label.toLowerCase().replace(/\s+/g, '-')}`}
                   onClick={() => handlePresetSelect(preset)}
                   size="sm"
-                  className="bg-slate-700/50 hover:bg-slate-600 text-slate-300 border border-slate-600 text-xs font-medium"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-medium"
                 >
                   {preset.label}
                 </Button>
@@ -123,8 +123,8 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
           </div>
 
           {/* Issue Type Filter - Checkboxes */}
-          <div className="pt-2 border-t border-slate-700">
-            <Label className="text-slate-200 font-semibold text-sm uppercase tracking-wide mb-3 block">
+          <div className="pt-2 border-t border-slate-200">
+            <Label className="text-slate-700 font-semibold text-sm uppercase tracking-wide mb-3 block">
               Issue Types
             </Label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -134,11 +134,11 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
                     id={`type-${type}`}
                     checked={localFilters.issueType?.includes(type) || false}
                     onCheckedChange={(checked) => handleIssueTypeToggle(type, checked)}
-                    className="border-slate-500 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
+                    className="border-slate-300 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
                   />
                   <Label 
                     htmlFor={`type-${type}`}
-                    className="text-sm text-slate-300 cursor-pointer"
+                    className="text-sm text-slate-700 cursor-pointer"
                   >
                     {type}
                   </Label>
@@ -152,7 +152,7 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
 
           {/* Status Filter */}
           <div>
-            <Label htmlFor="status-filter" className="text-slate-200 font-semibold text-sm uppercase tracking-wide mb-2 block">
+            <Label htmlFor="status-filter" className="text-slate-700 font-semibold text-sm uppercase tracking-wide mb-2 block">
               Status (Optional)
             </Label>
             <Input
@@ -164,14 +164,14 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
                 ...prev, 
                 status: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
               }))}
-              className="bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-cyan-500"
+              className="bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500"
             />
             <p className="text-xs text-slate-500 mt-1">Comma-separated values</p>
           </div>
 
           {/* Labels Filter */}
           <div>
-            <Label htmlFor="labels-filter" className="text-slate-200 font-semibold text-sm uppercase tracking-wide mb-2 block">
+            <Label htmlFor="labels-filter" className="text-slate-700 font-semibold text-sm uppercase tracking-wide mb-2 block">
               Labels (Optional)
             </Label>
             <Input
@@ -183,17 +183,17 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
                 ...prev, 
                 labels: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
               }))}
-              className="bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-cyan-500"
+              className="bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500"
             />
             <p className="text-xs text-slate-500 mt-1">Comma-separated values</p>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-slate-700">
+          <div className="flex gap-3 pt-4 border-t border-slate-200">
             <Button
               onClick={handleClearFilters}
               variant="ghost"
-              className="text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+              className="text-slate-500 hover:text-slate-700 hover:bg-slate-100"
             >
               <X size={16} className="mr-1" />
               Clear
@@ -202,7 +202,7 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
             <Button
               onClick={onClose}
               variant="outline"
-              className="border-slate-600 text-slate-200 hover:bg-slate-700"
+              className="border-slate-300 text-slate-700 hover:bg-slate-50"
             >
               Cancel
             </Button>

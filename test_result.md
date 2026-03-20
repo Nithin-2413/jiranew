@@ -172,6 +172,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "TESTED ✅ - JQL construction working correctly. Tested multiple filter scenarios including multi-word issue types (Sub-task), status filters, and date ranges. All scenarios handle invalid credentials gracefully with proper error responses."
+      - working: true
+        agent: "main"
+        comment: "CRITICAL FIX - Migrated from deprecated /rest/api/3/search (410 Gone) to new /rest/api/3/search/jql API endpoint. Now uses nextPageToken for pagination."
 
   - task: "Jira Sprints API"
     implemented: true

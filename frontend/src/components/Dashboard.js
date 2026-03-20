@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Settings, Download, Filter, FileText, FileSpreadsheet } from 'lucide-react';
+import { Settings, Download, Filter, FileText, BarChart3, Users, Bug, Target, Clock, CheckCircle, Zap, Tag } from 'lucide-react';
 import JiraService from '../services/jiraService';
 import { processJiraData } from '../services/dataProcessor';
 import { generatePDF } from '../services/pdfGenerator';
@@ -61,16 +61,13 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
       setProgress(50);
       setProgressText(`Found ${result.total} issues. Analyzing data...`);
 
-      // Store raw issues for export
       setRawIssues(result.issues);
-      
       const processedMetrics = processJiraData(result.issues);
       setMetrics(processedMetrics);
 
       setProgress(80);
       setProgressText('Preparing analytics...');
 
-      // Log story points info
       console.log('Story Points Summary:', {
         field: result.storyPointsField,
         issuesWithPoints: result.issuesWithPoints,
@@ -132,7 +129,6 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
       setProgress(30);
       setProgressText('Capturing charts...');
       
-      // Capture chart images
       const chartImages = {};
       for (const [key, ref] of Object.entries(chartRefs.current)) {
         if (ref?.toBase64Image) {
@@ -185,7 +181,6 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
       setProgress(30);
       setProgressText('Capturing charts...');
       
-      // Capture chart images
       const chartImages = {};
       for (const [key, ref] of Object.entries(chartRefs.current)) {
         if (ref?.toBase64Image) {
@@ -223,19 +218,22 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50">
       {/* Header */}
-      <div className="bg-slate-900/80 border-b border-slate-700/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-[1600px] mx-auto px-6 py-4">
+      <div className="bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-[1600px] mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                <FileText className="text-white" size={22} />
-              </div>
+              <img 
+                src="https://customer-assets.emergentagent.com/job_team-metrics-62/artifacts/9yxyauul_Lumen_Technologies_logo.svg-2048x294.png" 
+                alt="Lumen Technologies"
+                className="h-8 object-contain"
+              />
+              <div className="h-8 w-px bg-slate-300" />
               <div>
-                <h1 className="text-xl font-bold text-white">JIRA Analytics Dashboard</h1>
+                <h1 className="text-xl font-bold text-slate-900">JIRA Analytics Dashboard</h1>
                 {jiraConfig && (
-                  <p className="text-sm text-slate-400">Project: <span className="text-cyan-400 font-medium">{jiraConfig.projectKey}</span></p>
+                  <p className="text-sm text-slate-600">Project: <span className="text-cyan-600 font-semibold">{jiraConfig.projectKey}</span></p>
                 )}
               </div>
             </div>
@@ -243,16 +241,16 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
               <Button
                 data-testid="filter-btn"
                 onClick={() => setShowFilterModal(true)}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-medium"
+                className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium shadow-sm"
               >
-                <Filter size={18} className="mr-2 text-cyan-400" />
+                <Filter size={18} className="mr-2 text-cyan-600" />
                 Filters
               </Button>
               <Button
                 data-testid="settings-btn"
                 onClick={onOpenConfig}
                 variant="outline"
-                className="border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700"
+                className="border-slate-300 text-slate-600 hover:bg-slate-50"
               >
                 <Settings size={18} />
               </Button>
@@ -262,9 +260,9 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-[1600px] mx-auto px-6 py-8">
+      <div className="max-w-[1600px] mx-auto px-8 py-8">
         {/* Action Bar */}
-        <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-6 mb-8 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
           <div className="flex flex-wrap gap-4">
             <Button
               data-testid="generate-report-btn"
@@ -272,7 +270,7 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
               disabled={loading}
               className="flex-1 min-w-[200px] bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-14 text-base font-semibold shadow-lg shadow-cyan-500/20"
             >
-              <FileText size={20} className="mr-2" />
+              <BarChart3 size={20} className="mr-2" />
               {loading ? 'Generating Report...' : 'Generate Report'}
             </Button>
             {metrics && (
@@ -292,8 +290,8 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
           {loading && (
             <div className="mt-6">
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-slate-300 font-medium">{progressText}</span>
-                <span className="font-bold text-cyan-400">{progress}%</span>
+                <span className="text-slate-600 font-medium">{progressText}</span>
+                <span className="font-bold text-cyan-600">{progress}%</span>
               </div>
               <div className="loading-bar">
                 <div className="loading-bar-progress" style={{ width: `${progress}%` }} />
@@ -304,20 +302,20 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
 
         {/* Analytics Content */}
         {!metrics ? (
-          <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-16 text-center backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-16 text-center">
             <div className="max-w-md mx-auto">
-              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center mx-auto mb-6">
-                <FileText size={40} className="text-slate-500" />
+              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-cyan-100 to-blue-100 flex items-center justify-center mx-auto mb-6">
+                <BarChart3 size={40} className="text-cyan-600" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">No Data Yet</h3>
-              <p className="text-slate-400 mb-8">
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">Ready to Analyze</h3>
+              <p className="text-slate-500 mb-8">
                 Configure your filters and click "Generate Report" to fetch and analyze your JIRA data
               </p>
               <Button
                 onClick={() => setShowFilterModal(true)}
-                className="bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium"
+                className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium shadow-sm"
               >
-                <Filter size={18} className="mr-2 text-cyan-400" />
+                <Filter size={18} className="mr-2 text-cyan-600" />
                 Configure Filters
               </Button>
             </div>
@@ -327,31 +325,39 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
             {/* Metrics Cards */}
             <MetricsCards metrics={metrics} />
             
-            {/* Quick Stats */}
+            {/* Quick Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="analytics-card">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Test Coverage</h4>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
+                    <CheckCircle size={20} className="text-teal-600" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Test Coverage</h4>
                 </div>
-                <div className="text-3xl font-bold text-white mb-1">
+                <div className="text-3xl font-bold text-slate-900 mb-1">
                   {metrics.advancedAnalytics.testMetrics.total}
                 </div>
                 <div className="text-sm text-slate-500">Total Tests</div>
                 <div className="mt-3 flex gap-2 text-xs">
-                  <span className="px-2 py-1 bg-emerald-900/50 text-emerald-400 rounded border border-emerald-700/50">
-                    ✓ {metrics.advancedAnalytics.testMetrics.passed}
+                  <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded font-medium">
+                    ✓ {metrics.advancedAnalytics.testMetrics.passed} passed
                   </span>
                   {metrics.advancedAnalytics.testMetrics.failed > 0 && (
-                    <span className="px-2 py-1 bg-red-900/50 text-red-400 rounded border border-red-700/50">
-                      ✗ {metrics.advancedAnalytics.testMetrics.failed}
+                    <span className="px-2 py-1 bg-red-100 text-red-700 rounded font-medium">
+                      ✗ {metrics.advancedAnalytics.testMetrics.failed} failed
                     </span>
                   )}
                 </div>
               </div>
 
               <div className="analytics-card">
-                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Avg Resolution</h4>
-                <div className="text-3xl font-bold text-white mb-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                    <Clock size={20} className="text-amber-600" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Avg Resolution</h4>
+                </div>
+                <div className="text-3xl font-bold text-slate-900 mb-1">
                   {metrics.timeMetrics.avgResolutionTime}
                 </div>
                 <div className="text-sm text-slate-500">Days</div>
@@ -361,8 +367,13 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
               </div>
 
               <div className="analytics-card">
-                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Labels Used</h4>
-                <div className="text-3xl font-bold text-white mb-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                    <Tag size={20} className="text-purple-600" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Labels Used</h4>
+                </div>
+                <div className="text-3xl font-bold text-slate-900 mb-1">
                   {metrics.labelMetrics.topLabels.length}
                 </div>
                 <div className="text-sm text-slate-500">Unique Labels</div>
@@ -372,8 +383,13 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
               </div>
 
               <div className="analytics-card">
-                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Bug Density</h4>
-                <div className="text-3xl font-bold text-white mb-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-100 to-rose-100 flex items-center justify-center">
+                    <Bug size={20} className="text-red-600" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Bug Density</h4>
+                </div>
+                <div className="text-3xl font-bold text-slate-900 mb-1">
                   {metrics.qualityMetrics.bugDensity}%
                 </div>
                 <div className="text-sm text-slate-500">Bugs per Story</div>

@@ -38,21 +38,6 @@ ChartJS.register(
   ChartDataLabels
 );
 
-const CHART_COLORS = {
-  primary: '#0EA5E9',
-  success: '#10B981',
-  warning: '#F59E0B',
-  error: '#EF4444',
-  purple: '#8B5CF6',
-  blue: '#3B82F6',
-  teal: '#14B8A6',
-  orange: '#F97316',
-  pink: '#EC4899',
-  indigo: '#6366F1',
-  cyan: '#06B6D4',
-  lime: '#84CC16'
-};
-
 const VIBRANT_COLORS = [
   '#0EA5E9', '#8B5CF6', '#F59E0B', '#10B981', '#EC4899',
   '#F97316', '#6366F1', '#14B8A6', '#EF4444', '#84CC16',
@@ -64,23 +49,23 @@ const ChartCard = ({ title, subtitle, children, assignees = [], selectedAssignee
   const hasFilter = assignees.length > 0;
   
   return (
-    <div className="chart-card group" data-testid={chartId}>
+    <div className="chart-card" data-testid={chartId}>
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h4 className="text-lg font-bold text-slate-100">{title}</h4>
-          {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+          <h4 className="text-lg font-bold text-slate-800">{title}</h4>
+          {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
         </div>
         {hasFilter && (
           <div className="flex items-center gap-2">
-            <Users size={14} className="text-slate-500" />
+            <Users size={14} className="text-slate-400" />
             <Select value={selectedAssignee || 'all'} onValueChange={onAssigneeChange}>
-              <SelectTrigger className="h-8 w-[160px] bg-slate-700/50 border-slate-600 text-xs text-slate-300">
+              <SelectTrigger className="h-8 w-[160px] bg-slate-50 border-slate-200 text-xs text-slate-600">
                 <SelectValue placeholder="All Members" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
-                <SelectItem value="all" className="text-slate-200 text-xs">All Members</SelectItem>
+              <SelectContent className="bg-white border-slate-200">
+                <SelectItem value="all" className="text-slate-700 text-xs">All Members</SelectItem>
                 {assignees.map((assignee) => (
-                  <SelectItem key={assignee} value={assignee} className="text-slate-200 text-xs">
+                  <SelectItem key={assignee} value={assignee} className="text-slate-700 text-xs">
                     {assignee}
                   </SelectItem>
                 ))}
@@ -99,15 +84,14 @@ const ChartCard = ({ title, subtitle, children, assignees = [], selectedAssignee
 // Loading skeleton for charts
 const ChartSkeleton = () => (
   <div className="chart-card">
-    <Skeleton className="h-6 w-48 mb-4 bg-slate-700" />
-    <Skeleton className="h-[280px] w-full bg-slate-700/50 rounded-lg" />
+    <Skeleton className="h-6 w-48 mb-4 bg-slate-200" />
+    <Skeleton className="h-[280px] w-full bg-slate-100 rounded-lg" />
   </div>
 );
 
 const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
   // Local filter states for each visualization
   const [teamChartFilter, setTeamChartFilter] = useState('all');
-  const [pointsStatusFilter, setPointsStatusFilter] = useState('all');
   const [issuesTableFilter, setIssuesTableFilter] = useState('all');
 
   // Get unique assignees
@@ -126,7 +110,7 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
       datasets: [{
         label: 'Story Points',
         data: assignees.map(member => metrics.teamMetrics.pointsByAssignee[member] || 0),
-        backgroundColor: CHART_COLORS.purple,
+        backgroundColor: '#8B5CF6',
         borderRadius: 8
       }]
     };
@@ -165,7 +149,7 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
     labels: Object.keys(metrics.qualityMetrics.bugsByPriority),
     datasets: [{
       data: Object.values(metrics.qualityMetrics.bugsByPriority),
-      backgroundColor: [CHART_COLORS.error, CHART_COLORS.warning, CHART_COLORS.orange, CHART_COLORS.blue, CHART_COLORS.teal],
+      backgroundColor: ['#EF4444', '#F59E0B', '#F97316', '#3B82F6', '#14B8A6'],
       borderWidth: 0
     }]
   };
@@ -180,30 +164,10 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
         ? Object.values(metrics.storyPointsMetrics.pointsByStatus)
         : [0],
       backgroundColor: pointsByStatusLabels.length > 0
-        ? [CHART_COLORS.success, CHART_COLORS.primary, CHART_COLORS.warning, CHART_COLORS.purple]
-        : ['#374151'],
+        ? ['#10B981', '#0EA5E9', '#F59E0B', '#8B5CF6']
+        : ['#E5E7EB'],
       borderRadius: 8
     }]
-  };
-
-  // Issue Type vs Label Analysis
-  const issueTypes = Object.keys(metrics.advancedAnalytics.issueTypeVsLabel);
-  const allLabelsSet = new Set();
-  issueTypes.forEach(type => {
-    Object.keys(metrics.advancedAnalytics.issueTypeVsLabel[type]).forEach(label => {
-      allLabelsSet.add(label);
-    });
-  });
-  const allLabels = Array.from(allLabelsSet).slice(0, 10);
-
-  const issueTypeVsLabelData = {
-    labels: allLabels,
-    datasets: issueTypes.map((type, idx) => ({
-      label: type,
-      data: allLabels.map(label => metrics.advancedAnalytics.issueTypeVsLabel[type]?.[label] || 0),
-      backgroundColor: VIBRANT_COLORS[idx % VIBRANT_COLORS.length],
-      borderRadius: 6
-    }))
   };
 
   // Test Execution Metrics
@@ -215,20 +179,8 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
         metrics.advancedAnalytics.testMetrics.failed,
         metrics.advancedAnalytics.testMetrics.blocked
       ],
-      backgroundColor: [CHART_COLORS.success, CHART_COLORS.error, CHART_COLORS.warning],
+      backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
       borderWidth: 0
-    }]
-  };
-
-  // Subtask Analysis
-  const subtaskLabels = Object.keys(metrics.advancedAnalytics.subtaskMetrics.subtasksByLabel).slice(0, 10);
-  const subtaskData = {
-    labels: subtaskLabels,
-    datasets: [{
-      label: 'Subtasks Count',
-      data: subtaskLabels.map(label => metrics.advancedAnalytics.subtaskMetrics.subtasksByLabel[label]),
-      backgroundColor: CHART_COLORS.cyan,
-      borderRadius: 8
     }]
   };
 
@@ -242,22 +194,20 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
         labels: {
           font: { family: 'Inter', size: 11 },
           padding: 15,
-          color: '#94A3B8',
+          color: '#64748B',
           usePointStyle: true,
           pointStyle: 'circle'
         }
       },
       tooltip: {
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
         padding: 12,
         cornerRadius: 8,
         titleFont: { size: 13, family: 'Inter', weight: 600 },
-        bodyFont: { size: 12, family: 'Inter' },
-        borderColor: 'rgba(71, 85, 105, 0.5)',
-        borderWidth: 1
+        bodyFont: { size: 12, family: 'Inter' }
       },
       datalabels: {
-        color: '#F1F5F9',
+        color: '#1E293B',
         font: { weight: 'bold', size: 11 },
         formatter: (value) => value > 0 ? value : '',
         display: (context) => context.dataset.data[context.dataIndex] > 0
@@ -270,12 +220,12 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
     scales: {
       y: {
         beginAtZero: true,
-        grid: { color: 'rgba(71, 85, 105, 0.3)' },
-        ticks: { font: { family: 'Inter' }, color: '#94A3B8' }
+        grid: { color: '#F1F5F9' },
+        ticks: { font: { family: 'Inter' }, color: '#64748B' }
       },
       x: {
         grid: { display: false },
-        ticks: { font: { family: 'Inter' }, color: '#94A3B8', maxRotation: 45, minRotation: 0 }
+        ticks: { font: { family: 'Inter' }, color: '#64748B', maxRotation: 45, minRotation: 0 }
       }
     }
   };
@@ -358,7 +308,7 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
             {Object.keys(metrics.qualityMetrics.bugsByPriority).length > 0 ? (
               <Doughnut data={bugPriorityData} options={chartOptions} />
             ) : (
-              <div className="flex items-center justify-center h-[280px] text-slate-500">
+              <div className="flex items-center justify-center h-[280px] text-slate-400">
                 No bugs found
               </div>
             )}
@@ -374,54 +324,18 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
         </div>
       </div>
 
-      {/* Advanced Analytics */}
-      {allLabels.length > 0 && (
+      {/* Test Execution */}
+      {metrics.advancedAnalytics.testMetrics.total > 0 && (
         <div className="charts-section">
-          <h3 className="section-title">Advanced Analytics</h3>
-          <ChartCard 
-            title="Issue Type vs Label Correlation" 
-            subtitle="Relationship between issue types and labels"
-            chartId="chart-type-label"
-          >
-            <div style={{ height: '380px' }}>
-              <Bar 
-                data={issueTypeVsLabelData} 
-                options={{
-                  ...barChartOptions,
-                  plugins: {
-                    ...barChartOptions.plugins,
-                    legend: { ...barChartOptions.plugins.legend, position: 'top' }
-                  }
-                }} 
-              />
-            </div>
-          </ChartCard>
-        </div>
-      )}
-
-      {/* Test & Subtask Analysis */}
-      {(metrics.advancedAnalytics.testMetrics.total > 0 || subtaskLabels.length > 0) && (
-        <div className="charts-section">
-          <h3 className="section-title">Testing & Subtasks</h3>
+          <h3 className="section-title">Test Execution</h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {metrics.advancedAnalytics.testMetrics.total > 0 && (
-              <ChartCard 
-                title="Test Execution Results" 
-                subtitle={`${metrics.advancedAnalytics.testMetrics.total} total tests`}
-                chartId="chart-test-execution"
-              >
-                <Pie data={testData} options={chartOptions} />
-              </ChartCard>
-            )}
-
-            {subtaskLabels.length > 0 && (
-              <ChartCard 
-                title="Subtasks by Label" 
-                chartId="chart-subtask-label"
-              >
-                <Bar data={subtaskData} options={barChartOptions} />
-              </ChartCard>
-            )}
+            <ChartCard 
+              title="Test Results" 
+              subtitle={`${metrics.advancedAnalytics.testMetrics.total} total tests`}
+              chartId="chart-test-execution"
+            >
+              <Pie data={testData} options={chartOptions} />
+            </ChartCard>
           </div>
         </div>
       )}
@@ -453,19 +367,19 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
                         <td>
                           <span className="label-badge">{label}</span>
                         </td>
-                        <td className="font-bold text-slate-200">{count}</td>
+                        <td className="font-bold text-slate-800">{count}</td>
                         <td>
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-slate-700 rounded-full h-2 overflow-hidden max-w-[100px]">
+                            <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden max-w-[100px]">
                               <div 
                                 className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
                                 style={{ width: `${percentage}%` }}
                               />
                             </div>
-                            <span className="text-sm text-slate-400">{percentage}%</span>
+                            <span className="text-sm text-slate-600">{percentage}%</span>
                           </div>
                         </td>
-                        <td className="text-slate-400">
+                        <td className="text-slate-500">
                           {topType ? `${topType[0]} (${topType[1]})` : '-'}
                         </td>
                       </tr>
@@ -483,19 +397,19 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
         <h3 className="section-title">Recent Issues</h3>
         <div className="chart-card" data-testid="issues-table">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-500">
               Showing {filteredIssues.slice(0, 50).length} of {filteredIssues.length} issues
             </p>
             <div className="flex items-center gap-2">
-              <Filter size={14} className="text-slate-500" />
+              <Filter size={14} className="text-slate-400" />
               <Select value={issuesTableFilter} onValueChange={setIssuesTableFilter}>
-                <SelectTrigger className="h-8 w-[180px] bg-slate-700/50 border-slate-600 text-xs text-slate-300">
+                <SelectTrigger className="h-8 w-[180px] bg-slate-50 border-slate-200 text-xs text-slate-600">
                   <SelectValue placeholder="Filter by Assignee" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-600 max-h-[300px]">
-                  <SelectItem value="all" className="text-slate-200 text-xs">All Assignees</SelectItem>
+                <SelectContent className="bg-white border-slate-200 max-h-[300px]">
+                  <SelectItem value="all" className="text-slate-700 text-xs">All Assignees</SelectItem>
                   {uniqueAssignees.map((assignee) => (
-                    <SelectItem key={assignee} value={assignee} className="text-slate-200 text-xs">
+                    <SelectItem key={assignee} value={assignee} className="text-slate-700 text-xs">
                       {assignee}
                     </SelectItem>
                   ))}
@@ -520,8 +434,8 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
               <tbody>
                 {filteredIssues.slice(0, 50).map((issue) => (
                   <tr key={issue.key}>
-                    <td className="font-bold text-cyan-400">{issue.key}</td>
-                    <td className="max-w-[200px] truncate text-slate-300" title={issue.summary}>
+                    <td className="font-bold text-cyan-600">{issue.key}</td>
+                    <td className="max-w-[200px] truncate text-slate-700" title={issue.summary}>
                       {issue.summary?.substring(0, 50)}{issue.summary?.length > 50 ? '...' : ''}
                     </td>
                     <td>
@@ -536,12 +450,12 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
                         {issue.status}
                       </span>
                     </td>
-                    <td className="text-slate-400">{issue.assignee}</td>
+                    <td className="text-slate-600">{issue.assignee}</td>
                     <td className="text-center">
                       {issue.storyPoints > 0 ? (
                         <span className="points-badge">{issue.storyPoints}</span>
                       ) : (
-                        <span className="text-slate-600">-</span>
+                        <span className="text-slate-400">-</span>
                       )}
                     </td>
                     <td>

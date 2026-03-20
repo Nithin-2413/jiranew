@@ -342,22 +342,26 @@ async def search_jira_issues(request: JiraSearchRequest):
             "sprint",
         ] + story_points_field_ids
         
-        # Fetch all issues with pagination
+        # Fetch all issues with pagination using the NEW /search/jql endpoint
         all_issues = []
-        start_at = 0
+        next_page_token = None
         max_results = 100
         
         async with httpx.AsyncClient(timeout=60.0) as http_client:
             while True:
+                # Use the new /search/jql endpoint format
                 search_body = {
                     "jql": jql,
-                    "startAt": start_at,
                     "maxResults": max_results,
                     "fields": fields_to_fetch
                 }
                 
+                # Add pagination token if available
+                if next_page_token:
+                    search_body["nextPageToken"] = next_page_token
+                
                 response = await http_client.post(
-                    f"{jira_url}/rest/api/3/search",
+                    f"{jira_url}/rest/api/3/search/jql",
                     headers=headers,
                     json=search_body
                 )
@@ -418,11 +422,11 @@ async def search_jira_issues(request: JiraSearchRequest):
                 
                 all_issues.extend(issues)
                 
-                # Check if we've fetched all issues
-                if start_at + len(issues) >= total or len(issues) == 0:
-                    break
+                # Check for next page using nextPageToken (new API format)
+                next_page_token = data.get("nextPageToken")
                 
-                start_at += max_results
+                if not next_page_token or len(all_issues) >= 2000:
+                    break
                 
                 # Safety limit
                 if len(all_issues) >= 2000:

@@ -6,39 +6,37 @@
 
 .App {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+  background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 50%, #F0F9FF 100%);
 }
 
-/* Metric Cards */
+/* Metric Cards - Light Theme */
 .metric-card {
-  background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-  border: 1px solid rgba(71, 85, 105, 0.4);
+  background: white;
+  border: 1px solid #E2E8F0;
   border-radius: 16px;
   padding: 1.5rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .metric-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(14, 165, 233, 0.15);
-  border-color: rgba(14, 165, 233, 0.5);
+  box-shadow: 0 12px 24px rgba(12, 158, 217, 0.15);
+  border-color: #0C9ED9;
 }
 
-/* Chart Cards */
+/* Chart Cards - Light Theme */
 .chart-card {
-  background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
-  border: 1px solid rgba(71, 85, 105, 0.4);
+  background: white;
+  border: 1px solid #E2E8F0;
   border-radius: 20px;
   padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
 }
 
 .chart-card:hover {
-  box-shadow: 0 12px 24px rgba(14, 165, 233, 0.1);
-  border-color: rgba(71, 85, 105, 0.6);
+  box-shadow: 0 8px 16px rgba(12, 158, 217, 0.1);
 }
 
 .chart-wrapper {
@@ -52,10 +50,10 @@
 .section-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: #0F172A;
   margin-bottom: 1.25rem;
-  padding-left: 0.5rem;
-  border-left: 4px solid #0EA5E9;
+  padding-left: 0.75rem;
+  border-left: 4px solid #0C9ED9;
 }
 
 .charts-section {
@@ -64,30 +62,30 @@
 
 /* Analytics Cards */
 .analytics-card {
-  background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-  border: 1px solid rgba(71, 85, 105, 0.4);
+  background: white;
+  border: 1px solid #E2E8F0;
   border-radius: 20px;
   padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
 }
 
 .analytics-card:hover {
-  box-shadow: 0 8px 16px rgba(14, 165, 233, 0.1);
+  box-shadow: 0 8px 16px rgba(12, 158, 217, 0.1);
 }
 
 /* Loading Bar */
 .loading-bar {
   width: 100%;
   height: 6px;
-  background: rgba(71, 85, 105, 0.5);
+  background: #E2E8F0;
   border-radius: 9999px;
   overflow: hidden;
 }
 
 .loading-bar-progress {
   height: 100%;
-  background: linear-gradient(90deg, #0EA5E9 0%, #8B5CF6 50%, #0EA5E9 100%);
+  background: linear-gradient(90deg, #0C9ED9 0%, #3B82F6 50%, #0C9ED9 100%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
   transition: width 0.3s ease;
@@ -102,7 +100,7 @@
 /* Tables */
 .table-container {
   overflow-x: auto;
-  background: transparent;
+  background: white;
   border-radius: 12px;
 }
 
@@ -112,22 +110,22 @@
 }
 
 .data-table th {
-  background: rgba(30, 41, 59, 0.8);
+  background: #F8FAFC;
   padding: 1rem;
   text-align: left;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #94A3B8;
+  color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 2px solid rgba(71, 85, 105, 0.5);
+  border-bottom: 2px solid #E2E8F0;
 }
 
 .data-table td {
   padding: 0.875rem 1rem;
-  border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+  border-bottom: 1px solid #F1F5F9;
   font-size: 0.875rem;
-  color: #CBD5E1;
+  color: #334155;
 }
 
 .data-table tbody tr {
@@ -135,7 +133,7 @@
 }
 
 .data-table tbody tr:hover {
-  background: rgba(71, 85, 105, 0.2);
+  background: #F8FAFC;
 }
 
 /* Status Badges */
@@ -151,27 +149,23 @@
 }
 
 .status-open {
-  background: rgba(251, 191, 36, 0.2);
-  color: #FCD34D;
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  background: #FEF3C7;
+  color: #92400E;
 }
 
 .status-in-progress {
-  background: rgba(59, 130, 246, 0.2);
-  color: #60A5FA;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: #DBEAFE;
+  color: #1E40AF;
 }
 
 .status-resolved {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34D399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: #D1FAE5;
+  color: #065F46;
 }
 
 .status-closed {
-  background: rgba(107, 114, 128, 0.2);
-  color: #9CA3AF;
-  border: 1px solid rgba(107, 114, 128, 0.3);
+  background: #E5E7EB;
+  color: #374151;
 }
 
 /* Type Badge */
@@ -180,21 +174,21 @@
   padding: 0.25rem 0.625rem;
   font-size: 0.7rem;
   border-radius: 6px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2));
-  color: #C4B5FD;
+  background: linear-gradient(135deg, #EEF2FF, #E0E7FF);
+  color: #4338CA;
   font-weight: 500;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  border: 1px solid #C7D2FE;
 }
 
 /* Label Badge */
 .label-badge {
   display: inline-block;
   padding: 0.375rem 0.75rem;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(139, 92, 246, 0.15));
-  border: 1px solid rgba(14, 165, 233, 0.3);
+  background: linear-gradient(135deg, #F0F9FF, #E0F2FE);
+  border: 1px solid #BAE6FD;
   border-radius: 9999px;
   font-size: 0.8rem;
-  color: #7DD3FC;
+  color: #0369A1;
   font-weight: 500;
 }
 
@@ -203,9 +197,9 @@
   padding: 0.125rem 0.5rem;
   font-size: 0.65rem;
   border-radius: 4px;
-  background: rgba(71, 85, 105, 0.5);
-  color: #94A3B8;
-  border: 1px solid rgba(71, 85, 105, 0.5);
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
 }
 
 /* Points Badge */
@@ -230,25 +224,15 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(30, 41, 59, 0.5);
+  background: #F1F5F9;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(71, 85, 105, 0.8);
+  background: #0C9ED9;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.8);
-}
-
-/* Skeleton Loading */
-.skeleton-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  background: #0A85B6;
 }

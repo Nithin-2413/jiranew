@@ -65,28 +65,28 @@ const ExportOptionsModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[550px] bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white max-h-[85vh] overflow-y-auto" data-testid="export-options-modal">
+      <DialogContent className="sm:max-w-[550px] bg-white border-slate-200 max-h-[85vh] overflow-y-auto" data-testid="export-options-modal">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
-            <FileText className="text-cyan-400" size={22} />
+          <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <FileText className="text-cyan-600" size={22} />
             Export Report Options
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-slate-500">
             Select which sections to include in your exported report
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
           {/* Select All */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-            <span className="text-sm text-slate-300">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+            <span className="text-sm text-slate-600">
               {selectedCount} of {EXPORT_SECTIONS.length} sections selected
             </span>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleSelectAll}
-              className="text-cyan-400 hover:text-cyan-300 hover:bg-slate-700"
+              className="text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50"
             >
               {Object.values(exportOptions).every(v => v) ? 'Deselect All' : 'Select All'}
             </Button>
@@ -97,18 +97,18 @@ const ExportOptionsModal = ({
             {EXPORT_SECTIONS.map((section) => (
               <div 
                 key={section.key}
-                className="flex items-start space-x-3 p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors"
+                className="flex items-start space-x-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
               >
                 <Checkbox
                   id={section.key}
                   checked={exportOptions[section.key]}
                   onCheckedChange={(checked) => handleOptionChange(section.key, checked)}
-                  className="mt-0.5 border-slate-500 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
+                  className="mt-0.5 border-slate-300 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
                 />
                 <div className="flex-1">
                   <Label 
                     htmlFor={section.key}
-                    className="text-sm font-medium text-slate-200 cursor-pointer"
+                    className="text-sm font-medium text-slate-800 cursor-pointer"
                   >
                     {section.label}
                   </Label>
@@ -123,7 +123,7 @@ const ExportOptionsModal = ({
           <Button
             variant="outline"
             onClick={onClose}
-            className="flex-1 border-slate-600 text-slate-200 hover:bg-slate-700"
+            className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50"
           >
             Cancel
           </Button>
