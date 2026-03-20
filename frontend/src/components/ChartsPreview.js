@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,8 +12,17 @@ import {
   LineElement,
   RadialLinearScale
 } from 'chart.js';
-import { Bar, Doughnut, Line, Radar, PolarArea } from 'react-chartjs-2';
+import { Bar, Doughnut, Pie } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { Users, Filter } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import { Skeleton } from './ui/skeleton';
 
 ChartJS.register(
   CategoryScale,
@@ -30,7 +39,7 @@ ChartJS.register(
 );
 
 const CHART_COLORS = {
-  primary: '#0C9ED9',
+  primary: '#0EA5E9',
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
@@ -45,12 +54,89 @@ const CHART_COLORS = {
 };
 
 const VIBRANT_COLORS = [
-  '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-  '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384',
-  '#36A2EB', '#FFCE56'
+  '#0EA5E9', '#8B5CF6', '#F59E0B', '#10B981', '#EC4899',
+  '#F97316', '#6366F1', '#14B8A6', '#EF4444', '#84CC16',
+  '#06B6D4', '#A855F7'
 ];
 
-const ChartsPreview = ({ metrics, chartRefs }) => {
+// Card wrapper component with optional local filter
+const ChartCard = ({ title, subtitle, children, assignees = [], selectedAssignee, onAssigneeChange, chartId }) => {
+  const hasFilter = assignees.length > 0;
+  
+  return (
+    <div className="chart-card group" data-testid={chartId}>
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h4 className="text-lg font-bold text-slate-100">{title}</h4>
+          {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+        </div>
+        {hasFilter && (
+          <div className="flex items-center gap-2">
+            <Users size={14} className="text-slate-500" />
+            <Select value={selectedAssignee || 'all'} onValueChange={onAssigneeChange}>
+              <SelectTrigger className="h-8 w-[160px] bg-slate-700/50 border-slate-600 text-xs text-slate-300">
+                <SelectValue placeholder="All Members" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="all" className="text-slate-200 text-xs">All Members</SelectItem>
+                {assignees.map((assignee) => (
+                  <SelectItem key={assignee} value={assignee} className="text-slate-200 text-xs">
+                    {assignee}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+      <div className="chart-wrapper">
+        {children}
+      </div>
+    </div>
+  );
+};
+
+// Loading skeleton for charts
+const ChartSkeleton = () => (
+  <div className="chart-card">
+    <Skeleton className="h-6 w-48 mb-4 bg-slate-700" />
+    <Skeleton className="h-[280px] w-full bg-slate-700/50 rounded-lg" />
+  </div>
+);
+
+const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
+  // Local filter states for each visualization
+  const [teamChartFilter, setTeamChartFilter] = useState('all');
+  const [pointsStatusFilter, setPointsStatusFilter] = useState('all');
+  const [issuesTableFilter, setIssuesTableFilter] = useState('all');
+
+  // Get unique assignees
+  const uniqueAssignees = useMemo(() => {
+    return Object.keys(metrics.teamMetrics.byAssignee || {}).sort();
+  }, [metrics.teamMetrics.byAssignee]);
+
+  // Filtered data based on local filters
+  const filteredTeamData = useMemo(() => {
+    const assignees = teamChartFilter === 'all' 
+      ? uniqueAssignees 
+      : [teamChartFilter];
+    
+    return {
+      labels: assignees,
+      datasets: [{
+        label: 'Story Points',
+        data: assignees.map(member => metrics.teamMetrics.pointsByAssignee[member] || 0),
+        backgroundColor: CHART_COLORS.purple,
+        borderRadius: 8
+      }]
+    };
+  }, [teamChartFilter, uniqueAssignees, metrics.teamMetrics.pointsByAssignee]);
+
+  const filteredIssues = useMemo(() => {
+    if (issuesTableFilter === 'all') return metrics.detailedIssues;
+    return metrics.detailedIssues.filter(issue => issue.assignee === issuesTableFilter);
+  }, [issuesTableFilter, metrics.detailedIssues]);
+
   // Issue Type Chart Data
   const issueTypeData = {
     labels: Object.keys(metrics.volumeMetrics.byType),
@@ -74,29 +160,17 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
     }]
   };
 
-  // ALL Team Members - Story Points
-  const allTeamMembers = Object.keys(metrics.teamMetrics.pointsByAssignee);
-  const teamData = {
-    labels: allTeamMembers,
-    datasets: [{
-      label: 'Story Points',
-      data: allTeamMembers.map(member => metrics.teamMetrics.pointsByAssignee[member] || 0),
-      backgroundColor: CHART_COLORS.purple,
-      borderRadius: 8
-    }]
-  };
-
   // Bug Priority Chart Data
   const bugPriorityData = {
     labels: Object.keys(metrics.qualityMetrics.bugsByPriority),
     datasets: [{
       data: Object.values(metrics.qualityMetrics.bugsByPriority),
-      backgroundColor: VIBRANT_COLORS,
+      backgroundColor: [CHART_COLORS.error, CHART_COLORS.warning, CHART_COLORS.orange, CHART_COLORS.blue, CHART_COLORS.teal],
       borderWidth: 0
     }]
   };
 
-  // Story Points by Status - Fixed to show data
+  // Story Points by Status
   const pointsByStatusLabels = Object.keys(metrics.storyPointsMetrics.pointsByStatus);
   const pointsByStatusData = {
     labels: pointsByStatusLabels.length > 0 ? pointsByStatusLabels : ['No Data'],
@@ -106,8 +180,8 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
         ? Object.values(metrics.storyPointsMetrics.pointsByStatus)
         : [0],
       backgroundColor: pointsByStatusLabels.length > 0
-        ? VIBRANT_COLORS.slice(0, pointsByStatusLabels.length)
-        : ['#9CA3AF'],
+        ? [CHART_COLORS.success, CHART_COLORS.primary, CHART_COLORS.warning, CHART_COLORS.purple]
+        : ['#374151'],
       borderRadius: 8
     }]
   };
@@ -166,12 +240,9 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
         display: true,
         position: 'bottom',
         labels: {
-          font: {
-            family: 'Inter',
-            size: 11
-          },
+          font: { family: 'Inter', size: 11 },
           padding: 15,
-          color: '#334155',
+          color: '#94A3B8',
           usePointStyle: true,
           pointStyle: 'circle'
         }
@@ -180,26 +251,16 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
         backgroundColor: 'rgba(15, 23, 42, 0.95)',
         padding: 12,
         cornerRadius: 8,
-        titleFont: {
-          size: 13,
-          family: 'Inter',
-          weight: 600
-        },
-        bodyFont: {
-          size: 12,
-          family: 'Inter'
-        },
-        borderColor: 'rgba(226, 232, 240, 0.2)',
+        titleFont: { size: 13, family: 'Inter', weight: 600 },
+        bodyFont: { size: 12, family: 'Inter' },
+        borderColor: 'rgba(71, 85, 105, 0.5)',
         borderWidth: 1
       },
       datalabels: {
-        color: '#1E293B',
-        font: {
-          weight: 'bold',
-          size: 12
-        },
+        color: '#F1F5F9',
+        font: { weight: 'bold', size: 11 },
         formatter: (value) => value > 0 ? value : '',
-        display: true
+        display: (context) => context.dataset.data[context.dataIndex] > 0
       }
     }
   };
@@ -209,192 +270,168 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
     scales: {
       y: {
         beginAtZero: true,
-        grid: {
-          color: '#F1F5F9'
-        },
-        ticks: {
-          font: {
-            family: 'Inter'
-          },
-          color: '#64748B'
-        }
+        grid: { color: 'rgba(71, 85, 105, 0.3)' },
+        ticks: { font: { family: 'Inter' }, color: '#94A3B8' }
       },
       x: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          font: {
-            family: 'Inter'
-          },
-          color: '#64748B',
-          maxRotation: 45,
-          minRotation: 0
-        }
+        grid: { display: false },
+        ticks: { font: { family: 'Inter' }, color: '#94A3B8', maxRotation: 45, minRotation: 0 }
       }
     }
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <ChartSkeleton />
+          <ChartSkeleton />
+        </div>
+        <ChartSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Issue Distribution */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <h3 className="text-2xl font-bold mb-6 text-slate-900">Issue Distribution</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div data-testid="chart-issue-type">
-            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">By Issue Type</h4>
-            <div className="chart-container">
-              <Doughnut 
-                ref={(ref) => { if (ref) chartRefs.current.issueTypeChart = ref; }}
-                data={issueTypeData} 
-                options={chartOptions} 
-              />
-            </div>
-          </div>
-          <div data-testid="chart-status">
-            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">By Status</h4>
-            <div className="chart-container">
-              <Bar 
-                ref={(ref) => { if (ref) chartRefs.current.statusChart = ref; }}
-                data={statusData} 
-                options={barChartOptions} 
-              />
-            </div>
-          </div>
+      {/* Issue Distribution Section */}
+      <div className="charts-section">
+        <h3 className="section-title">Issue Distribution</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartCard title="By Issue Type" chartId="chart-issue-type">
+            <Doughnut 
+              ref={(ref) => { if (ref) chartRefs.current.issueTypeChart = ref; }}
+              data={issueTypeData} 
+              options={chartOptions} 
+            />
+          </ChartCard>
+          
+          <ChartCard title="By Status" chartId="chart-status">
+            <Bar 
+              ref={(ref) => { if (ref) chartRefs.current.statusChart = ref; }}
+              data={statusData} 
+              options={barChartOptions} 
+            />
+          </ChartCard>
         </div>
       </div>
 
-      {/* Team Performance - ALL MEMBERS */}
-      {allTeamMembers.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <h3 className="text-2xl font-bold mb-6 text-slate-900">Team Performance - All Members</h3>
-          <div data-testid="chart-team-points">
-            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">
-              Story Points by Team Member ({allTeamMembers.length} members)
-            </h4>
-            <div className="chart-container" style={{ height: Math.max(320, allTeamMembers.length * 30) + 'px' }}>
+      {/* Team Performance Section with Local Filter */}
+      {uniqueAssignees.length > 0 && (
+        <div className="charts-section">
+          <h3 className="section-title">Team Performance</h3>
+          <ChartCard 
+            title="Story Points by Team Member" 
+            subtitle={`${uniqueAssignees.length} team members`}
+            assignees={uniqueAssignees}
+            selectedAssignee={teamChartFilter}
+            onAssigneeChange={setTeamChartFilter}
+            chartId="chart-team-points"
+          >
+            <div style={{ height: Math.max(300, (teamChartFilter === 'all' ? uniqueAssignees.length : 1) * 40) + 'px' }}>
               <Bar 
                 ref={(ref) => { if (ref) chartRefs.current.teamPointsChart = ref; }}
-                data={teamData} 
+                data={filteredTeamData} 
                 options={{
                   ...barChartOptions,
                   indexAxis: 'y',
                   scales: {
-                    x: {
-                      ...barChartOptions.scales.y
-                    },
-                    y: {
-                      ...barChartOptions.scales.x
-                    }
+                    x: { ...barChartOptions.scales.y },
+                    y: { ...barChartOptions.scales.x }
                   }
                 }} 
               />
             </div>
-          </div>
+          </ChartCard>
         </div>
       )}
 
-      {/* Bug Analysis & Story Points */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <h3 className="text-2xl font-bold mb-6 text-slate-900">Bug Analysis</h3>
-          <div data-testid="chart-bug-priority">
-            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Bugs by Priority</h4>
-            <div className="chart-container">
-              <Doughnut 
-                data={bugPriorityData} 
-                options={chartOptions} 
-              />
-            </div>
-          </div>
-        </div>
+      {/* Bug Analysis & Story Points Section */}
+      <div className="charts-section">
+        <h3 className="section-title">Quality & Progress</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartCard 
+            title="Bugs by Priority" 
+            subtitle={`${metrics.qualityMetrics.totalBugs} total bugs`}
+            chartId="chart-bug-priority"
+          >
+            {Object.keys(metrics.qualityMetrics.bugsByPriority).length > 0 ? (
+              <Doughnut data={bugPriorityData} options={chartOptions} />
+            ) : (
+              <div className="flex items-center justify-center h-[280px] text-slate-500">
+                No bugs found
+              </div>
+            )}
+          </ChartCard>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <h3 className="text-2xl font-bold mb-6 text-slate-900">Story Points</h3>
-          <div data-testid="chart-points-status">
-            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Points by Status</h4>
-            <div className="chart-container">
-              <Bar 
-                data={pointsByStatusData} 
-                options={barChartOptions} 
-              />
-            </div>
-          </div>
+          <ChartCard 
+            title="Story Points by Status" 
+            subtitle={`${metrics.storyPointsMetrics.totalPoints} total points`}
+            chartId="chart-points-status"
+          >
+            <Bar data={pointsByStatusData} options={barChartOptions} />
+          </ChartCard>
         </div>
       </div>
 
-      {/* Advanced Analytics - Issue Type vs Label */}
+      {/* Advanced Analytics */}
       {allLabels.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <h3 className="text-2xl font-bold mb-6 text-slate-900">Issue Type vs Label Analysis</h3>
-          <div data-testid="chart-type-label">
-            <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">
-              Correlation between Issue Types and Labels
-            </h4>
-            <div className="chart-container" style={{ height: '400px' }}>
+        <div className="charts-section">
+          <h3 className="section-title">Advanced Analytics</h3>
+          <ChartCard 
+            title="Issue Type vs Label Correlation" 
+            subtitle="Relationship between issue types and labels"
+            chartId="chart-type-label"
+          >
+            <div style={{ height: '380px' }}>
               <Bar 
                 data={issueTypeVsLabelData} 
                 options={{
                   ...barChartOptions,
                   plugins: {
                     ...barChartOptions.plugins,
-                    legend: {
-                      ...barChartOptions.plugins.legend,
-                      position: 'top'
-                    }
+                    legend: { ...barChartOptions.plugins.legend, position: 'top' }
                   }
                 }} 
               />
             </div>
+          </ChartCard>
+        </div>
+      )}
+
+      {/* Test & Subtask Analysis */}
+      {(metrics.advancedAnalytics.testMetrics.total > 0 || subtaskLabels.length > 0) && (
+        <div className="charts-section">
+          <h3 className="section-title">Testing & Subtasks</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {metrics.advancedAnalytics.testMetrics.total > 0 && (
+              <ChartCard 
+                title="Test Execution Results" 
+                subtitle={`${metrics.advancedAnalytics.testMetrics.total} total tests`}
+                chartId="chart-test-execution"
+              >
+                <Pie data={testData} options={chartOptions} />
+              </ChartCard>
+            )}
+
+            {subtaskLabels.length > 0 && (
+              <ChartCard 
+                title="Subtasks by Label" 
+                chartId="chart-subtask-label"
+              >
+                <Bar data={subtaskData} options={barChartOptions} />
+              </ChartCard>
+            )}
           </div>
         </div>
       )}
 
-      {/* Test Execution & Subtask Analysis */}
-      {(metrics.advancedAnalytics.testMetrics.total > 0 || subtaskLabels.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {metrics.advancedAnalytics.testMetrics.total > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-2xl font-bold mb-6 text-slate-900">Test Execution</h3>
-              <div data-testid="chart-test-execution">
-                <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">
-                  Test Results ({metrics.advancedAnalytics.testMetrics.total} total)
-                </h4>
-                <div className="chart-container">
-                  <Doughnut 
-                    data={testData} 
-                    options={chartOptions} 
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {subtaskLabels.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-2xl font-bold mb-6 text-slate-900">Subtask Analysis</h3>
-              <div data-testid="chart-subtask-label">
-                <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">
-                  Subtasks by Label
-                </h4>
-                <div className="chart-container">
-                  <Bar 
-                    data={subtaskData} 
-                    options={barChartOptions} 
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Label Analysis */}
+      {/* Label Analysis Table */}
       {metrics.labelMetrics.topLabels.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <h3 className="text-2xl font-bold mb-6 text-slate-900">Label Analysis</h3>
-          <div data-testid="labels-table">
-            <div className="table-container">
+        <div className="charts-section">
+          <h3 className="section-title">Label Analysis</h3>
+          <div className="chart-card" data-testid="labels-table">
+            <div className="overflow-x-auto">
               <table className="data-table">
                 <thead>
                   <tr>
@@ -413,24 +450,22 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
                     
                     return (
                       <tr key={label}>
-                        <td className="font-semibold">
-                          <span className="inline-block px-3 py-1 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-full text-sm text-slate-700">
-                            {label}
-                          </span>
+                        <td>
+                          <span className="label-badge">{label}</span>
                         </td>
-                        <td className="font-bold text-slate-900">{count}</td>
+                        <td className="font-bold text-slate-200">{count}</td>
                         <td>
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                            <div className="flex-1 bg-slate-700 rounded-full h-2 overflow-hidden max-w-[100px]">
                               <div 
                                 className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
                                 style={{ width: `${percentage}%` }}
                               />
                             </div>
-                            <span className="text-sm font-medium text-slate-700">{percentage}%</span>
+                            <span className="text-sm text-slate-400">{percentage}%</span>
                           </div>
                         </td>
-                        <td className="text-slate-600">
+                        <td className="text-slate-400">
                           {topType ? `${topType[0]} (${topType[1]})` : '-'}
                         </td>
                       </tr>
@@ -443,71 +478,87 @@ const ChartsPreview = ({ metrics, chartRefs }) => {
         </div>
       )}
 
-      {/* Detailed Issues Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <h3 className="text-2xl font-bold mb-6 text-slate-900">Recent Issues</h3>
-        <div data-testid="issues-table" className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Key</th>
-                <th>Summary</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Assignee</th>
-                <th>Points</th>
-                <th>Labels</th>
-              </tr>
-            </thead>
-            <tbody>
-              {metrics.detailedIssues.slice(0, 30).map((issue) => (
-                <tr key={issue.key}>
-                  <td className="font-bold text-cyan-600">{issue.key}</td>
-                  <td className="max-w-xs truncate text-slate-900">
-                    {issue.summary.substring(0, 60)}{issue.summary.length > 60 ? '...' : ''}
-                  </td>
-                  <td>
-                    <span className="px-3 py-1 text-xs rounded-full bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 font-medium border border-purple-200">
-                      {issue.type}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${
-                      issue.statusCategory === 'Done' ? 'status-resolved' :
-                      issue.statusCategory === 'In Progress' ? 'status-in-progress' :
-                      'status-open'
-                    }`}>
-                      {issue.status}
-                    </span>
-                  </td>
-                  <td className="text-slate-700">{issue.assignee}</td>
-                  <td className="text-center">
-                    {issue.storyPoints > 0 ? (
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold text-sm shadow">
-                        {issue.storyPoints}
-                      </span>
-                    ) : (
-                      <span className="text-slate-400">-</span>
-                    )}
-                  </td>
-                  <td>
-                    <div className="flex flex-wrap gap-1">
-                      {issue.labels.slice(0, 2).map(label => (
-                        <span key={label} className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600 border border-slate-200">
-                          {label}
-                        </span>
-                      ))}
-                      {issue.labels.length > 2 && (
-                        <span className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600 border border-slate-200">
-                          +{issue.labels.length - 2}
-                        </span>
-                      )}
-                    </div>
-                  </td>
+      {/* Detailed Issues Table with Local Filter */}
+      <div className="charts-section">
+        <h3 className="section-title">Recent Issues</h3>
+        <div className="chart-card" data-testid="issues-table">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-slate-400">
+              Showing {filteredIssues.slice(0, 50).length} of {filteredIssues.length} issues
+            </p>
+            <div className="flex items-center gap-2">
+              <Filter size={14} className="text-slate-500" />
+              <Select value={issuesTableFilter} onValueChange={setIssuesTableFilter}>
+                <SelectTrigger className="h-8 w-[180px] bg-slate-700/50 border-slate-600 text-xs text-slate-300">
+                  <SelectValue placeholder="Filter by Assignee" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-600 max-h-[300px]">
+                  <SelectItem value="all" className="text-slate-200 text-xs">All Assignees</SelectItem>
+                  {uniqueAssignees.map((assignee) => (
+                    <SelectItem key={assignee} value={assignee} className="text-slate-200 text-xs">
+                      {assignee}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Summary</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Assignee</th>
+                  <th>Points</th>
+                  <th>Labels</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredIssues.slice(0, 50).map((issue) => (
+                  <tr key={issue.key}>
+                    <td className="font-bold text-cyan-400">{issue.key}</td>
+                    <td className="max-w-[200px] truncate text-slate-300" title={issue.summary}>
+                      {issue.summary?.substring(0, 50)}{issue.summary?.length > 50 ? '...' : ''}
+                    </td>
+                    <td>
+                      <span className="type-badge">{issue.type}</span>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${
+                        issue.statusCategory === 'Done' ? 'status-resolved' :
+                        issue.statusCategory === 'In Progress' ? 'status-in-progress' :
+                        'status-open'
+                      }`}>
+                        {issue.status}
+                      </span>
+                    </td>
+                    <td className="text-slate-400">{issue.assignee}</td>
+                    <td className="text-center">
+                      {issue.storyPoints > 0 ? (
+                        <span className="points-badge">{issue.storyPoints}</span>
+                      ) : (
+                        <span className="text-slate-600">-</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="flex flex-wrap gap-1">
+                        {issue.labels?.slice(0, 2).map(label => (
+                          <span key={label} className="mini-label">{label}</span>
+                        ))}
+                        {issue.labels?.length > 2 && (
+                          <span className="mini-label">+{issue.labels.length - 2}</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

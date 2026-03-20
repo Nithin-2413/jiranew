@@ -1,5 +1,19 @@
 import { format, subDays, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfWeek, endOfWeek } from 'date-fns';
 
+// Helper to get story points from issue - now uses normalized field
+const getStoryPoints = (issue) => {
+  const fields = issue.fields || {};
+  // Use normalized storyPoints field first (set by backend)
+  if (fields.storyPoints !== undefined && fields.storyPoints !== null) {
+    return parseFloat(fields.storyPoints) || 0;
+  }
+  // Fallback to customfield_10016 for backward compatibility
+  if (fields.customfield_10016 !== undefined && fields.customfield_10016 !== null) {
+    return parseFloat(fields.customfield_10016) || 0;
+  }
+  return 0;
+};
+
 export const processJiraData = (issues) => {
   if (!issues || issues.length === 0) {
     return getEmptyMetrics();
@@ -46,18 +60,32 @@ const calculateVolumeMetrics = (issues) => {
 const calculateTeamMetrics = (issues) => {
   const byAssignee = {};
   const pointsByAssignee = {};
+  const issuesByAssignee = {};
 
   issues.forEach(issue => {
     const assignee = issue.fields.assignee?.displayName || 'Unassigned';
-    const points = issue.fields.customfield_10016 || 0;
+    const assigneeId = issue.fields.assignee?.accountId || 'unassigned';
+    const points = getStoryPoints(issue);
 
     byAssignee[assignee] = (byAssignee[assignee] || 0) + 1;
     pointsByAssignee[assignee] = (pointsByAssignee[assignee] || 0) + points;
+    
+    if (!issuesByAssignee[assignee]) {
+      issuesByAssignee[assignee] = {
+        accountId: assigneeId,
+        displayName: assignee,
+        issues: [],
+        totalPoints: 0
+      };
+    }
+    issuesByAssignee[assignee].issues.push(issue);
+    issuesByAssignee[assignee].totalPoints += points;
   });
 
   return {
     byAssignee,
     pointsByAssignee,
+    issuesByAssignee,
     totalMembers: Object.keys(byAssignee).length
   };
 };
@@ -67,7 +95,7 @@ const calculateSprintMetrics = (issues) => {
   
   issues.forEach(issue => {
     const sprint = issue.fields.sprint?.name || 'No Sprint';
-    const points = issue.fields.customfield_10016 || 0;
+    const points = getStoryPoints(issue);
     const status = issue.fields.status?.statusCategory?.name || 'To Do';
 
     if (!sprints[sprint]) {
@@ -122,12 +150,14 @@ const calculateStoryPointsMetrics = (issues) => {
   let completedPoints = 0;
   const pointsByStatus = {};
   const pointDistribution = [];
+  let issuesWithPoints = 0;
 
   issues.forEach(issue => {
-    const points = issue.fields.customfield_10016 || 0;
+    const points = getStoryPoints(issue);
     const status = issue.fields.status?.statusCategory?.name || 'To Do';
 
     if (points > 0) {
+      issuesWithPoints++;
       totalPoints += points;
       pointDistribution.push(points);
 
@@ -148,6 +178,7 @@ const calculateStoryPointsMetrics = (issues) => {
     completedPoints,
     pointsByStatus,
     avgPoints,
+    issuesWithPoints,
     completionRate: totalPoints > 0 ? ((completedPoints / totalPoints) * 100).toFixed(1) : 0
   };
 };
@@ -288,20 +319,21 @@ const processDetailedIssues = (issues) => {
     status: issue.fields.status?.name,
     priority: issue.fields.priority?.name,
     assignee: issue.fields.assignee?.displayName || 'Unassigned',
+    assigneeId: issue.fields.assignee?.accountId || 'unassigned',
     created: issue.fields.created,
     resolved: issue.fields.resolutiondate,
     labels: issue.fields.labels || [],
-    storyPoints: issue.fields.customfield_10016 || 0,
+    storyPoints: getStoryPoints(issue),
     statusCategory: issue.fields.status?.statusCategory?.name
   }));
 };
 
 const getEmptyMetrics = () => ({
   volumeMetrics: { total: 0, byType: {}, byStatus: {}, byPriority: {} },
-  teamMetrics: { byAssignee: {}, pointsByAssignee: {}, totalMembers: 0 },
+  teamMetrics: { byAssignee: {}, pointsByAssignee: {}, issuesByAssignee: {}, totalMembers: 0 },
   sprintMetrics: { sprints: {} },
   qualityMetrics: { totalBugs: 0, bugsByPriority: {}, resolvedBugs: 0, bugDensity: 0 },
-  storyPointsMetrics: { totalPoints: 0, completedPoints: 0, pointsByStatus: {}, avgPoints: 0, completionRate: 0 },
+  storyPointsMetrics: { totalPoints: 0, completedPoints: 0, pointsByStatus: {}, avgPoints: 0, issuesWithPoints: 0, completionRate: 0 },
   labelMetrics: { labelCount: {}, topLabels: [], labelCombinations: {}, labelByIssueType: {} },
   timeMetrics: { avgResolutionTime: 0, resolvedIssues: 0 },
   detailedIssues: [],
@@ -344,3 +376,22 @@ export const getDatePresets = () => ({
     end: format(new Date(), 'yyyy-MM-dd')
   }
 });
+
+// Helper to filter issues by assignee for local chart filtering
+export const filterIssuesByAssignee = (issues, assigneeFilter) => {
+  if (!assigneeFilter || assigneeFilter === 'all') return issues;
+  return issues.filter(issue => {
+    const assignee = issue.fields?.assignee?.displayName || issue.assignee || 'Unassigned';
+    return assignee === assigneeFilter;
+  });
+};
+
+// Helper to get unique assignees from issues
+export const getUniqueAssignees = (issues) => {
+  const assignees = new Set();
+  issues.forEach(issue => {
+    const assignee = issue.fields?.assignee?.displayName || issue.assignee || 'Unassigned';
+    assignees.add(assignee);
+  });
+  return Array.from(assignees).sort();
+};

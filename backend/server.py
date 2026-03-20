@@ -19,7 +19,7 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ.get('DB_NAME', 'jira_reports')]
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -27,10 +27,17 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 
 # Define Models
 class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
+    model_config = ConfigDict(extra="ignore")
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_name: str
@@ -49,28 +56,39 @@ class JiraConfig(BaseModel):
 class JiraSearchRequest(BaseModel):
     config: JiraConfig
     filters: Optional[Dict[str, Any]] = {}
-    storyPointsFieldId: Optional[str] = 'customfield_10016'
+    storyPointsFieldId: Optional[str] = None
+
+class JiraFieldsRequest(BaseModel):
+    config: JiraConfig
+
+class JiraUsersRequest(BaseModel):
+    config: JiraConfig
+
+
+def get_jira_auth_headers(config: JiraConfig) -> dict:
+    """Generate authorization headers for Jira API"""
+    auth_string = f"{config.email}:{config.apiToken}"
+    auth_bytes = auth_string.encode('utf-8')
+    auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
+    
+    return {
+        'Authorization': f'Basic {auth_b64}',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
     return {"message": "Hello World"}
 
-# JIRA Proxy Endpoints
+
 @api_router.post("/jira/test-connection")
 async def test_jira_connection(config: JiraConfig):
     """Test JIRA connection by fetching current user info"""
     try:
-        auth_string = f"{config.email}:{config.apiToken}"
-        auth_bytes = auth_string.encode('utf-8')
-        auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
-        
-        headers = {
-            'Authorization': f'Basic {auth_b64}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-        
+        headers = get_jira_auth_headers(config)
         jira_url = config.url.rstrip('/')
         
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -101,122 +119,255 @@ async def test_jira_connection(config: JiraConfig):
         logger.error(f"JIRA connection test error: {str(e)}")
         return {"success": False, "error": str(e)}
 
-@api_router.post("/jira/search")
-async def search_jira_issues(request: JiraSearchRequest):
-    """Proxy endpoint to search JIRA issues - tries multiple story points fields"""
+
+@api_router.post("/jira/fields")
+async def get_jira_fields(request: JiraFieldsRequest):
+    """Fetch all available fields from Jira to discover Story Points field dynamically"""
     try:
         config = request.config
-        filters = request.filters
-        
-        auth_string = f"{config.email}:{config.apiToken}"
-        auth_bytes = auth_string.encode('utf-8')
-        auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
-        
-        headers = {
-            'Authorization': f'Basic {auth_b64}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-        
+        headers = get_jira_auth_headers(config)
         jira_url = config.url.rstrip('/')
         
-        # Try to detect story points field from field list
-        story_points_field_ids = [
-            'customfield_10016',  # Most common
-            'customfield_10024',  # Alternative 1
-            'customfield_10004',  # Alternative 2
-            'customfield_10008',  # Alternative 3
-            'customfield_10026',  # Alternative 4
-        ]
-        
-        detected_field = 'customfield_10016'  # Default
-        
-        try:
-            # Try to get field metadata to find story points field
-            fields_response = await httpx.get(
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
                 f"{jira_url}/rest/api/3/field",
-                headers=headers,
-                timeout=10.0
+                headers=headers
             )
             
-            if fields_response.status_code == 200:
-                fields = fields_response.json()
-                for field in fields:
-                    if field.get('name') and (
-                        'story point' in field['name'].lower() or
-                        'estimate' in field['name'].lower() and 'story' in field['name'].lower()
-                    ):
-                        detected_field = field['id']
-                        logger.info(f"Detected story points field: {detected_field} ({field['name']})")
-                        break
-        except Exception as e:
-            logger.warning(f"Could not detect story points field: {str(e)}")
+            if response.status_code != 200:
+                error_data = response.json() if response.text else {}
+                return {
+                    "success": False,
+                    "error": error_data.get("errorMessages", ["Failed to fetch fields"])[0] if error_data.get("errorMessages") else "Failed to fetch fields"
+                }
+            
+            fields = response.json()
+            
+            # Find potential story points fields
+            story_points_fields = []
+            for field in fields:
+                field_name = field.get('name', '').lower()
+                field_id = field.get('id', '')
+                
+                # Check for story points related fields
+                if ('story' in field_name and 'point' in field_name) or \
+                   field_name == 'story points' or \
+                   field_name == 'story point estimate' or \
+                   'estimate' in field_name:
+                    story_points_fields.append({
+                        'id': field_id,
+                        'name': field.get('name'),
+                        'type': field.get('schema', {}).get('type', 'unknown'),
+                        'custom': field.get('custom', False)
+                    })
+            
+            # Sort by relevance - exact matches first
+            def sort_key(f):
+                name = f['name'].lower()
+                if name == 'story points':
+                    return 0
+                elif name == 'story point estimate':
+                    return 1
+                elif 'story point' in name:
+                    return 2
+                else:
+                    return 3
+            
+            story_points_fields.sort(key=sort_key)
+            
+            return {
+                "success": True,
+                "storyPointsFields": story_points_fields,
+                "allFields": [{"id": f.get("id"), "name": f.get("name")} for f in fields if f.get("custom", False)]
+            }
+            
+    except httpx.TimeoutException:
+        return {"success": False, "error": "Connection timeout."}
+    except Exception as e:
+        logger.error(f"JIRA fields fetch error: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+
+@api_router.post("/jira/users")
+async def get_jira_users(request: JiraUsersRequest):
+    """Fetch all users/assignees for a project"""
+    try:
+        config = request.config
+        headers = get_jira_auth_headers(config)
+        jira_url = config.url.rstrip('/')
         
-        # Build JQL query
+        users = []
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Method 1: Get users assignable to project
+            response = await client.get(
+                f"{jira_url}/rest/api/3/user/assignable/search?project={config.projectKey}&maxResults=1000",
+                headers=headers
+            )
+            
+            if response.status_code == 200:
+                user_data = response.json()
+                for user in user_data:
+                    users.append({
+                        'accountId': user.get('accountId'),
+                        'displayName': user.get('displayName'),
+                        'emailAddress': user.get('emailAddress', ''),
+                        'avatarUrl': user.get('avatarUrls', {}).get('24x24', '')
+                    })
+            
+            # Remove duplicates based on accountId
+            seen = set()
+            unique_users = []
+            for user in users:
+                if user['accountId'] not in seen:
+                    seen.add(user['accountId'])
+                    unique_users.append(user)
+            
+            # Sort by display name
+            unique_users.sort(key=lambda x: x.get('displayName', '').lower())
+            
+            return {
+                "success": True,
+                "users": unique_users,
+                "total": len(unique_users)
+            }
+            
+    except httpx.TimeoutException:
+        return {"success": False, "error": "Connection timeout.", "users": []}
+    except Exception as e:
+        logger.error(f"JIRA users fetch error: {str(e)}")
+        return {"success": False, "error": str(e), "users": []}
+
+
+@api_router.post("/jira/search")
+async def search_jira_issues(request: JiraSearchRequest):
+    """Proxy endpoint to search JIRA issues with proper story points field detection"""
+    try:
+        config = request.config
+        filters = request.filters or {}
+        
+        headers = get_jira_auth_headers(config)
+        jira_url = config.url.rstrip('/')
+        
+        # Use provided story points field or detect dynamically
+        story_points_field = request.storyPointsFieldId
+        
+        # Common story points field IDs to try
+        story_points_field_ids = [
+            'customfield_10016',  # Most common
+            'customfield_10024',
+            'customfield_10004',
+            'customfield_10008',
+            'customfield_10026',
+            'customfield_10002',
+            'customfield_10005',
+        ]
+        
+        # If no field specified, try to detect it
+        if not story_points_field:
+            try:
+                async with httpx.AsyncClient(timeout=15.0) as http_client:
+                    fields_response = await http_client.get(
+                        f"{jira_url}/rest/api/3/field",
+                        headers=headers
+                    )
+                    
+                    if fields_response.status_code == 200:
+                        fields = fields_response.json()
+                        for field in fields:
+                            field_name = field.get('name', '').lower()
+                            if field_name == 'story points' or field_name == 'story point estimate':
+                                story_points_field = field.get('id')
+                                logger.info(f"Detected story points field: {story_points_field} ({field.get('name')})")
+                                break
+                            elif 'story' in field_name and 'point' in field_name:
+                                story_points_field = field.get('id')
+                                logger.info(f"Detected story points field (partial match): {story_points_field} ({field.get('name')})")
+            except Exception as e:
+                logger.warning(f"Could not auto-detect story points field: {str(e)}")
+        
+        if story_points_field and story_points_field not in story_points_field_ids:
+            story_points_field_ids.insert(0, story_points_field)
+        
+        # Build JQL query with proper quoting for multi-word values
         conditions = [f"project = {config.projectKey}"]
         
         if filters.get('startDate'):
             conditions.append(f'created >= "{filters["startDate"]}"')
         if filters.get('endDate'):
             conditions.append(f'created <= "{filters["endDate"]}"')
+        
+        # Status filter with proper quoting
         if filters.get('status') and len(filters['status']) > 0:
             status_list = ','.join([f'"{s}"' for s in filters['status']])
             conditions.append(f'status in ({status_list})')
+        
+        # Issue type filter with proper quoting for multi-word types
         if filters.get('issueType') and len(filters['issueType']) > 0:
-            type_list = ','.join([f'"{t}"' for t in filters['issueType']])
+            # Always quote issue types to handle multi-word types like "Sub-task"
+            type_list = ','.join([f'"{t.strip()}"' for t in filters['issueType']])
             conditions.append(f'issuetype in ({type_list})')
+        
+        # Labels filter
         if filters.get('labels') and len(filters['labels']) > 0:
-            label_list = ','.join([f'"{l}"' for l in filters['labels']])
+            label_list = ','.join([f'"{label}"' for label in filters['labels']])
             conditions.append(f'labels in ({label_list})')
+        
+        # Sprint filter
         if filters.get('sprint'):
             conditions.append(f'sprint = "{filters["sprint"]}"')
+        
+        # Assignee filter (for people filtering)
+        if filters.get('assignee'):
+            if filters['assignee'] == 'Unassigned':
+                conditions.append('assignee is EMPTY')
+            else:
+                conditions.append(f'assignee = "{filters["assignee"]}"')
             
         jql = ' AND '.join(conditions) + ' ORDER BY created DESC'
+        logger.info(f"JQL Query: {jql}")
         
-        # Fetch all issues - request ALL possible story points fields
+        # Build fields list - include all potential story points fields
+        fields_to_fetch = [
+            "summary",
+            "status",
+            "issuetype",
+            "priority",
+            "assignee",
+            "created",
+            "resolutiondate",
+            "labels",
+            "subtasks",
+            "parent",
+            "sprint",
+        ] + story_points_field_ids
+        
+        # Fetch all issues with pagination
         all_issues = []
-        next_page_token = None
+        start_at = 0
         max_results = 100
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as http_client:
             while True:
                 search_body = {
                     "jql": jql,
+                    "startAt": start_at,
                     "maxResults": max_results,
-                    "fields": [
-                        "summary",
-                        "status",
-                        "issuetype",
-                        "priority",
-                        "assignee",
-                        "created",
-                        "resolutiondate",
-                        "labels",
-                        "subtasks",
-                        "parent",
-                        "sprint",
-                        # Request ALL possible story points fields
-                        "customfield_10016",
-                        "customfield_10024",
-                        "customfield_10004",
-                        "customfield_10008",
-                        "customfield_10026",
-                        detected_field
-                    ]
+                    "fields": fields_to_fetch
                 }
                 
-                if next_page_token:
-                    search_body["nextPageToken"] = next_page_token
-                
-                response = await client.post(
-                    f"{jira_url}/rest/api/3/search/jql",
+                response = await http_client.post(
+                    f"{jira_url}/rest/api/3/search",
                     headers=headers,
                     json=search_body
                 )
                 
                 if response.status_code != 200:
                     error_data = response.json() if response.text else {}
-                    error_msg = error_data.get("errorMessages", ["Failed to fetch issues"])[0] if error_data.get("errorMessages") else "Failed to fetch issues"
+                    error_msg = error_data.get("errorMessages", ["Failed to fetch issues"])
+                    if isinstance(error_msg, list):
+                        error_msg = error_msg[0] if error_msg else "Failed to fetch issues"
+                    logger.error(f"Jira search error: {error_msg}")
                     return {
                         "success": False,
                         "error": error_msg
@@ -224,26 +375,30 @@ async def search_jira_issues(request: JiraSearchRequest):
                 
                 data = response.json()
                 issues = data.get("issues", [])
+                total = data.get("total", 0)
                 
                 # Normalize story points - try all possible fields
                 for issue in issues:
-                    fields = issue.get("fields", {})
+                    fields_data = issue.get("fields", {})
                     story_points = None
+                    detected_field = None
                     
-                    # Try detected field first
-                    if detected_field in fields and fields[detected_field] is not None:
-                        story_points = fields[detected_field]
+                    # Try the specified field first
+                    if story_points_field and story_points_field in fields_data:
+                        val = fields_data[story_points_field]
+                        if val is not None:
+                            story_points = val
+                            detected_field = story_points_field
                     
                     # Fall back to trying all common fields
                     if story_points is None:
                         for field_id in story_points_field_ids:
-                            if field_id in fields and fields[field_id] is not None:
-                                story_points = fields[field_id]
-                                if story_points and isinstance(story_points, (int, float)) and story_points > 0:
-                                    logger.info(f"Found story points in {field_id}: {story_points}")
+                            if field_id in fields_data and fields_data[field_id] is not None:
+                                story_points = fields_data[field_id]
+                                detected_field = field_id
                                 break
                     
-                    # Convert to number and set standardized field
+                    # Convert to number
                     try:
                         if story_points is not None:
                             if isinstance(story_points, str):
@@ -257,25 +412,36 @@ async def search_jira_issues(request: JiraSearchRequest):
                     except (ValueError, TypeError):
                         story_points = 0
                     
-                    issue["fields"]["customfield_10016"] = story_points
+                    # Set normalized story points field
+                    issue["fields"]["storyPoints"] = story_points
+                    issue["fields"]["_storyPointsField"] = detected_field
                 
                 all_issues.extend(issues)
                 
-                next_page_token = data.get("nextPageToken")
+                # Check if we've fetched all issues
+                if start_at + len(issues) >= total or len(issues) == 0:
+                    break
                 
-                if not next_page_token or len(all_issues) >= 1000:
+                start_at += max_results
+                
+                # Safety limit
+                if len(all_issues) >= 2000:
+                    logger.warning("Reached 2000 issues limit")
                     break
         
-        # Count how many issues have story points
-        issues_with_points = sum(1 for issue in all_issues if issue["fields"].get("customfield_10016", 0) > 0)
-        logger.info(f"Fetched {len(all_issues)} issues, {issues_with_points} have story points")
+        # Count statistics
+        issues_with_points = sum(1 for issue in all_issues if issue["fields"].get("storyPoints", 0) > 0)
+        total_points = sum(issue["fields"].get("storyPoints", 0) for issue in all_issues)
+        
+        logger.info(f"Fetched {len(all_issues)} issues, {issues_with_points} have story points (total: {total_points})")
         
         return {
             "success": True,
             "issues": all_issues,
             "total": len(all_issues),
-            "storyPointsField": detected_field,
-            "issuesWithPoints": issues_with_points
+            "storyPointsField": story_points_field or "auto-detected",
+            "issuesWithPoints": issues_with_points,
+            "totalStoryPoints": total_points
         }
                 
     except httpx.TimeoutException:
@@ -284,20 +450,12 @@ async def search_jira_issues(request: JiraSearchRequest):
         logger.error(f"JIRA search error: {str(e)}")
         return {"success": False, "error": str(e)}
 
+
 @api_router.post("/jira/sprints")
 async def fetch_jira_sprints(config: JiraConfig):
     """Fetch sprints for a project"""
     try:
-        auth_string = f"{config.email}:{config.apiToken}"
-        auth_bytes = auth_string.encode('utf-8')
-        auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
-        
-        headers = {
-            'Authorization': f'Basic {auth_b64}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-        
+        headers = get_jira_auth_headers(config)
         jira_url = config.url.rstrip('/')
         
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -335,29 +493,29 @@ async def fetch_jira_sprints(config: JiraConfig):
         logger.error(f"JIRA sprints fetch error: {str(e)}")
         return {"success": True, "sprints": []}
 
+
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
     status_dict = input.model_dump()
     status_obj = StatusCheck(**status_dict)
     
-    # Convert to dict and serialize datetime to ISO string for MongoDB
     doc = status_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
     
     _ = await db.status_checks.insert_one(doc)
     return status_obj
 
+
 @api_router.get("/status", response_model=List[StatusCheck])
 async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
     status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
     
-    # Convert ISO string timestamps back to datetime objects
     for check in status_checks:
         if isinstance(check['timestamp'], str):
             check['timestamp'] = datetime.fromisoformat(check['timestamp'])
     
     return status_checks
+
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -370,12 +528,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

@@ -8,6 +8,7 @@ export class JiraService {
     this.email = config.email;
     this.apiToken = config.apiToken;
     this.projectKey = config.projectKey;
+    this.storyPointsFieldId = config.storyPointsFieldId || null;
   }
 
   getConfig() {
@@ -34,31 +35,60 @@ export class JiraService {
     }
   }
 
+  async fetchFields() {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/jira/fields`,
+        { config: this.getConfig() }
+      );
+      return response.data;
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.error || error.message,
+        storyPointsFields: []
+      };
+    }
+  }
+
+  async fetchUsers() {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/jira/users`,
+        { config: this.getConfig() }
+      );
+      return response.data;
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.error || error.message,
+        users: []
+      };
+    }
+  }
+
   async fetchIssues(filters = {}) {
     try {
       console.log('Fetching issues with filters:', filters);
+      console.log('Story Points Field ID:', this.storyPointsFieldId);
+      
       const response = await axios.post(
         `${API_BASE_URL}/jira/search`,
         {
           config: this.getConfig(),
-          filters: filters
+          filters: filters,
+          storyPointsFieldId: this.storyPointsFieldId
         }
       );
       
       const data = response.data;
       console.log('Fetched issues:', data.total, 'Story Points Field:', data.storyPointsField);
+      console.log('Issues with points:', data.issuesWithPoints, 'Total points:', data.totalStoryPoints);
       
       // Log sample issue to check story points
       if (data.issues && data.issues.length > 0) {
         const sampleIssue = data.issues[0];
-        console.log('Sample issue fields:', Object.keys(sampleIssue.fields || {}));
-        console.log('Story points in sample:', 
-          sampleIssue.fields?.customfield_10016 || 
-          sampleIssue.fields?.customfield_10024 || 
-          sampleIssue.fields?.customfield_10004 || 
-          sampleIssue.fields?.customfield_10008 ||
-          'NOT FOUND'
-        );
+        console.log('Sample issue story points:', sampleIssue.fields?.storyPoints);
       }
       
       return data;

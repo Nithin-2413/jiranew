@@ -3,14 +3,10 @@ import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 
 const COLORS = {
-  primary: '#0C9ED9',
-  secondary: '#000000',
+  primary: '#0EA5E9',
+  secondary: '#1E293B',
   text: '#0F172A',
   textSecondary: '#64748B',
-  bug: '#EF4444',
-  story: '#0C9ED9',
-  task: '#3B82F6',
-  epic: '#8B5CF6',
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444'
@@ -18,305 +14,466 @@ const COLORS = {
 
 const PAGE_WIDTH = 210;
 const PAGE_HEIGHT = 297;
-const MARGIN = 20;
+const MARGIN = 15;
+const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
 
-export const generatePDF = async (metrics, config, chartImages) => {
+export const generatePDF = async (metrics, config, chartImages, exportOptions = {}) => {
   const doc = new jsPDF('p', 'mm', 'a4');
   let pageNum = 1;
+  let currentY = MARGIN;
 
-  // Page 1: Cover Page
+  // Helper function to check if we need a new page
+  const checkNewPage = (requiredSpace) => {
+    if (currentY + requiredSpace > PAGE_HEIGHT - 20) {
+      addFooter(doc, pageNum);
+      doc.addPage();
+      pageNum++;
+      currentY = MARGIN;
+      return true;
+    }
+    return false;
+  };
+
+  // Cover Page
   await addCoverPage(doc, config);
-  
-  // Page 2: Executive Summary
-  doc.addPage();
-  pageNum++;
-  addExecutiveSummary(doc, metrics, pageNum);
+  addFooter(doc, pageNum);
 
-  // Page 3: Issue Distribution
-  doc.addPage();
-  pageNum++;
-  await addIssueDistribution(doc, metrics, chartImages, pageNum);
+  // Executive Summary
+  if (exportOptions.executiveSummary !== false) {
+    doc.addPage();
+    pageNum++;
+    currentY = addExecutiveSummary(doc, metrics, config, MARGIN);
+    addFooter(doc, pageNum);
+  }
 
-  // Page 4: Team Performance
-  doc.addPage();
-  pageNum++;
-  await addTeamPerformance(doc, metrics, chartImages, pageNum);
+  // Issue Distribution
+  if (exportOptions.issueDistribution !== false) {
+    doc.addPage();
+    pageNum++;
+    currentY = await addIssueDistribution(doc, metrics, chartImages, MARGIN);
+    addFooter(doc, pageNum);
+  }
 
-  // Page 5: Story Points Analysis
-  doc.addPage();
-  pageNum++;
-  await addStoryPointsAnalysis(doc, metrics, chartImages, pageNum);
+  // Team Performance
+  if (exportOptions.teamPerformance !== false) {
+    doc.addPage();
+    pageNum++;
+    currentY = addTeamPerformance(doc, metrics, chartImages, MARGIN);
+    addFooter(doc, pageNum);
+  }
 
-  // Page 6: Bug Analysis
-  doc.addPage();
-  pageNum++;
-  await addBugAnalysis(doc, metrics, chartImages, pageNum);
+  // Story Points Analysis
+  if (exportOptions.storyPointsAnalysis !== false) {
+    doc.addPage();
+    pageNum++;
+    currentY = addStoryPointsAnalysis(doc, metrics, chartImages, MARGIN);
+    addFooter(doc, pageNum);
+  }
 
-  // Page 7: Label Analysis
-  doc.addPage();
-  pageNum++;
-  await addLabelAnalysis(doc, metrics, chartImages, pageNum);
+  // Bug Analysis
+  if (exportOptions.bugAnalysis !== false) {
+    doc.addPage();
+    pageNum++;
+    currentY = addBugAnalysis(doc, metrics, MARGIN);
+    addFooter(doc, pageNum);
+  }
 
-  // Pages 8+: Detailed Tables
-  doc.addPage();
-  pageNum++;
-  addDetailedTables(doc, metrics, pageNum);
+  // Label Analysis
+  if (exportOptions.labelAnalysis !== false && metrics.labelMetrics.topLabels.length > 0) {
+    doc.addPage();
+    pageNum++;
+    currentY = addLabelAnalysis(doc, metrics, MARGIN);
+    addFooter(doc, pageNum);
+  }
+
+  // Test Execution
+  if (exportOptions.testExecution !== false && metrics.advancedAnalytics.testMetrics.total > 0) {
+    doc.addPage();
+    pageNum++;
+    currentY = addTestExecution(doc, metrics, MARGIN);
+    addFooter(doc, pageNum);
+  }
+
+  // Detailed Issues Table
+  if (exportOptions.detailedIssues !== false) {
+    doc.addPage();
+    pageNum++;
+    addDetailedIssues(doc, metrics, pageNum);
+  }
 
   return doc;
 };
 
 const addCoverPage = async (doc, config) => {
-  try {
-    const logoUrl = 'https://customer-assets.emergentagent.com/job_team-metrics-62/artifacts/9yxyauul_Lumen_Technologies_logo.svg-2048x294.png';
-    doc.addImage(logoUrl, 'PNG', MARGIN, MARGIN, 60, 8.6);
-  } catch (error) {
-    console.error('Failed to add logo:', error);
-  }
+  // Background
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, 'F');
 
-  doc.setFontSize(32);
+  // Accent line
+  doc.setFillColor(14, 165, 233);
+  doc.rect(0, 0, 8, PAGE_HEIGHT, 'F');
+
+  // Title
+  doc.setFontSize(36);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.text);
-  doc.text('JIRA TEAM PERFORMANCE', PAGE_WIDTH / 2, 80, { align: 'center' });
-  doc.text('REPORT', PAGE_WIDTH / 2, 95, { align: 'center' });
+  doc.setTextColor(255, 255, 255);
+  doc.text('JIRA ANALYTICS', MARGIN + 10, 70);
+  
+  doc.setFontSize(28);
+  doc.setTextColor(14, 165, 233);
+  doc.text('REPORT', MARGIN + 10, 85);
 
+  // Project info
   doc.setFontSize(14);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(COLORS.textSecondary);
-  doc.text(`Project: ${config.projectKey}`, PAGE_WIDTH / 2, 120, { align: 'center' });
-  doc.text(`Period: ${config.dateRange}`, PAGE_WIDTH / 2, 130, { align: 'center' });
-  doc.text(`Generated: ${format(new Date(), 'MMMM dd, yyyy')}`, PAGE_WIDTH / 2, 140, { align: 'center' });
+  doc.setTextColor(148, 163, 184);
+  doc.text(`Project: ${config.projectKey}`, MARGIN + 10, 110);
+  doc.text(`Period: ${config.dateRange}`, MARGIN + 10, 120);
+  doc.text(`Generated: ${format(new Date(), 'MMMM dd, yyyy')}`, MARGIN + 10, 130);
 
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(30, 160, 150, 80, 3, 3, 'F');
-  
+  // Stats box
+  doc.setFillColor(30, 41, 59);
+  doc.roundedRect(MARGIN + 10, 150, CONTENT_WIDTH - 20, 90, 5, 5, 'F');
+
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.text);
-  doc.text('KEY HIGHLIGHTS', PAGE_WIDTH / 2, 172, { align: 'center' });
-  
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Total Issues: ${config.totalIssues}`, PAGE_WIDTH / 2, 185, { align: 'center' });
-  doc.text(`Completed: ${config.completedIssues} (${config.completionRate}%)`, PAGE_WIDTH / 2, 195, { align: 'center' });
-  doc.text(`Story Points: ${config.totalPoints}`, PAGE_WIDTH / 2, 205, { align: 'center' });
-  doc.text(`Team Members: ${config.teamMembers}`, PAGE_WIDTH / 2, 215, { align: 'center' });
+  doc.setTextColor(255, 255, 255);
+  doc.text('KEY HIGHLIGHTS', MARGIN + 20, 170);
 
-  addFooter(doc, 1);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(203, 213, 225);
+  
+  const highlights = [
+    `Total Issues: ${config.totalIssues}`,
+    `Completed: ${config.completedIssues} (${config.completionRate}%)`,
+    `Total Story Points: ${config.totalPoints}`,
+    `Team Members: ${config.teamMembers}`
+  ];
+  
+  highlights.forEach((text, idx) => {
+    doc.text(text, MARGIN + 20, 185 + idx * 12);
+  });
 };
 
-const addExecutiveSummary = (doc, metrics, pageNum) => {
-  addPageHeader(doc, 'EXECUTIVE SUMMARY');
-
-  let yPos = 50;
+const addExecutiveSummary = (doc, metrics, config, startY) => {
+  let y = startY;
+  
+  addSectionHeader(doc, 'EXECUTIVE SUMMARY', y);
+  y += 20;
 
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(COLORS.text);
   
-  const summaryText = `This report provides a comprehensive analysis of team performance for the selected period. The team has shown strong productivity with ${metrics.volumeMetrics.total} total issues processed, maintaining a ${metrics.storyPointsMetrics.completionRate}% completion rate.`;
+  const summaryText = `This report provides a comprehensive analysis of team performance for project ${config.projectKey} during ${config.dateRange}. The analysis covers ${metrics.volumeMetrics.total} issues with a ${metrics.storyPointsMetrics.completionRate}% completion rate based on story points.`;
   
-  const lines = doc.splitTextToSize(summaryText, PAGE_WIDTH - 2 * MARGIN);
-  doc.text(lines, MARGIN, yPos);
-  yPos += lines.length * 6 + 10;
+  const lines = doc.splitTextToSize(summaryText, CONTENT_WIDTH);
+  doc.text(lines, MARGIN, y);
+  y += lines.length * 6 + 10;
 
+  // Key metrics table
   const metricsData = [
-    ['METRIC', 'VALUE'],
-    ['Total Issues', metrics.volumeMetrics.total.toString()],
-    ['Completion Rate', `${metrics.storyPointsMetrics.completionRate}%`],
-    ['Story Points', metrics.storyPointsMetrics.totalPoints.toString()],
-    ['Team Members', metrics.teamMetrics.totalMembers.toString()]
+    ['Metric', 'Value', 'Description'],
+    ['Total Issues', metrics.volumeMetrics.total.toString(), 'All issues in the selected period'],
+    ['Completion Rate', `${metrics.storyPointsMetrics.completionRate}%`, 'Based on story points completed'],
+    ['Total Story Points', metrics.storyPointsMetrics.totalPoints.toString(), `${metrics.storyPointsMetrics.issuesWithPoints || 0} issues with points`],
+    ['Team Members', metrics.teamMetrics.totalMembers.toString(), 'Active contributors'],
+    ['Avg Resolution', `${metrics.timeMetrics.avgResolutionTime} days`, `${metrics.timeMetrics.resolvedIssues} issues resolved`],
+    ['Bug Count', metrics.qualityMetrics.totalBugs.toString(), `${metrics.qualityMetrics.resolvedBugs} resolved`]
   ];
 
   autoTable(doc, {
-    startY: yPos,
+    startY: y,
     head: [metricsData[0]],
     body: metricsData.slice(1),
     theme: 'striped',
-    headStyles: { fillColor: [12, 158, 217], fontSize: 10, fontStyle: 'bold' },
-    styles: { fontSize: 10, cellPadding: 5 }
+    headStyles: { 
+      fillColor: [14, 165, 233], 
+      fontSize: 10, 
+      fontStyle: 'bold',
+      textColor: [255, 255, 255]
+    },
+    styles: { fontSize: 9, cellPadding: 4 },
+    columnStyles: {
+      0: { fontStyle: 'bold' },
+      2: { textColor: [100, 116, 139] }
+    }
   });
 
-  addFooter(doc, pageNum);
+  return doc.lastAutoTable.finalY + 10;
 };
 
-const addIssueDistribution = async (doc, metrics, chartImages, pageNum) => {
-  addPageHeader(doc, 'ISSUE DISTRIBUTION');
+const addIssueDistribution = async (doc, metrics, chartImages, startY) => {
+  let y = startY;
+  
+  addSectionHeader(doc, 'ISSUE DISTRIBUTION', y);
+  y += 20;
 
-  let yPos = 50;
+  // Add chart images if available
+  const chartWidth = 80;
+  const chartHeight = 55;
 
   if (chartImages.issueTypeChart) {
-    doc.addImage(chartImages.issueTypeChart, 'PNG', MARGIN, yPos, 80, 60);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('By Issue Type', MARGIN, y);
+    y += 5;
+    
+    try {
+      doc.addImage(chartImages.issueTypeChart, 'PNG', MARGIN, y, chartWidth, chartHeight);
+    } catch (e) {
+      console.warn('Could not add issue type chart to PDF');
+    }
   }
+
   if (chartImages.statusChart) {
-    doc.addImage(chartImages.statusChart, 'PNG', MARGIN + 90, yPos, 80, 60);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('By Status', MARGIN + chartWidth + 10, startY + 20);
+    
+    try {
+      doc.addImage(chartImages.statusChart, 'PNG', MARGIN + chartWidth + 10, startY + 25, chartWidth, chartHeight);
+    } catch (e) {
+      console.warn('Could not add status chart to PDF');
+    }
   }
 
-  yPos += 70;
+  y = startY + 25 + chartHeight + 10;
 
-  const issueTypeData = [
-    ['ISSUE TYPE', 'COUNT', 'PERCENTAGE']
-  ];
+  // Issue type table
+  const typeData = [['Issue Type', 'Count', 'Percentage']];
   const total = metrics.volumeMetrics.total;
   Object.entries(metrics.volumeMetrics.byType).forEach(([type, count]) => {
-    issueTypeData.push([type, count.toString(), `${((count / total) * 100).toFixed(1)}%`]);
+    typeData.push([type, count.toString(), `${((count / total) * 100).toFixed(1)}%`]);
   });
 
   autoTable(doc, {
-    startY: yPos,
-    head: [issueTypeData[0]],
-    body: issueTypeData.slice(1),
+    startY: y,
+    head: [typeData[0]],
+    body: typeData.slice(1),
     theme: 'striped',
-    headStyles: { fillColor: [12, 158, 217], fontSize: 10, fontStyle: 'bold' },
-    styles: { fontSize: 9, cellPadding: 4 }
+    headStyles: { fillColor: [14, 165, 233], fontSize: 9, fontStyle: 'bold' },
+    styles: { fontSize: 8, cellPadding: 3 }
   });
 
-  addFooter(doc, pageNum);
+  y = doc.lastAutoTable.finalY + 10;
+
+  // Status table
+  const statusData = [['Status', 'Count', 'Percentage']];
+  Object.entries(metrics.volumeMetrics.byStatus).forEach(([status, count]) => {
+    statusData.push([status, count.toString(), `${((count / total) * 100).toFixed(1)}%`]);
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [statusData[0]],
+    body: statusData.slice(1),
+    theme: 'striped',
+    headStyles: { fillColor: [14, 165, 233], fontSize: 9, fontStyle: 'bold' },
+    styles: { fontSize: 8, cellPadding: 3 }
+  });
+
+  return doc.lastAutoTable.finalY + 10;
 };
 
-const addTeamPerformance = async (doc, metrics, chartImages, pageNum) => {
-  addPageHeader(doc, 'TEAM PERFORMANCE');
+const addTeamPerformance = (doc, metrics, chartImages, startY) => {
+  let y = startY;
+  
+  addSectionHeader(doc, 'TEAM PERFORMANCE', y);
+  y += 20;
 
-  let yPos = 50;
-
-  const teamData = [
-    ['TEAM MEMBER', 'ISSUES', 'STORY POINTS']
-  ];
+  // Team data table
+  const teamData = [['Team Member', 'Issues', 'Story Points', 'Avg Points/Issue']];
 
   Object.entries(metrics.teamMetrics.byAssignee)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => (metrics.teamMetrics.pointsByAssignee[b[0]] || 0) - (metrics.teamMetrics.pointsByAssignee[a[0]] || 0))
     .forEach(([member, count]) => {
       const points = metrics.teamMetrics.pointsByAssignee[member] || 0;
-      teamData.push([member, count.toString(), points.toString()]);
+      const avg = count > 0 ? (points / count).toFixed(1) : '0';
+      teamData.push([member, count.toString(), points.toString(), avg]);
     });
 
   autoTable(doc, {
-    startY: yPos,
+    startY: y,
     head: [teamData[0]],
     body: teamData.slice(1),
     theme: 'striped',
-    headStyles: { fillColor: [12, 158, 217], fontSize: 10, fontStyle: 'bold' },
-    styles: { fontSize: 9, cellPadding: 4 }
+    headStyles: { fillColor: [14, 165, 233], fontSize: 9, fontStyle: 'bold' },
+    styles: { fontSize: 8, cellPadding: 3 },
+    columnStyles: {
+      0: { cellWidth: 60 }
+    }
   });
 
-  addFooter(doc, pageNum);
+  return doc.lastAutoTable.finalY + 10;
 };
 
-const addStoryPointsAnalysis = async (doc, metrics, chartImages, pageNum) => {
-  addPageHeader(doc, 'STORY POINTS ANALYSIS');
+const addStoryPointsAnalysis = (doc, metrics, chartImages, startY) => {
+  let y = startY;
+  
+  addSectionHeader(doc, 'STORY POINTS ANALYSIS', y);
+  y += 20;
 
-  let yPos = 50;
-
+  // Summary stats
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Total Story Points: ${metrics.storyPointsMetrics.totalPoints}`, MARGIN, yPos);
-  doc.text(`Completed: ${metrics.storyPointsMetrics.completedPoints}`, MARGIN, yPos + 8);
-  doc.text(`Completion Rate: ${metrics.storyPointsMetrics.completionRate}%`, MARGIN, yPos + 16);
-  yPos += 30;
+  doc.setTextColor(COLORS.text);
+  doc.text(`Total Story Points: ${metrics.storyPointsMetrics.totalPoints}`, MARGIN, y);
+  doc.text(`Completed Points: ${metrics.storyPointsMetrics.completedPoints}`, MARGIN, y + 8);
+  doc.text(`Completion Rate: ${metrics.storyPointsMetrics.completionRate}%`, MARGIN, y + 16);
+  doc.text(`Average Points/Issue: ${metrics.storyPointsMetrics.avgPoints}`, MARGIN, y + 24);
+  y += 35;
 
-  const pointsData = [
-    ['STATUS', 'STORY POINTS', 'PERCENTAGE']
-  ];
+  // Points by status
+  const pointsData = [['Status', 'Story Points', 'Percentage']];
   const totalPoints = metrics.storyPointsMetrics.totalPoints || 1;
   Object.entries(metrics.storyPointsMetrics.pointsByStatus).forEach(([status, points]) => {
     pointsData.push([status, points.toString(), `${((points / totalPoints) * 100).toFixed(1)}%`]);
   });
 
-  autoTable(doc, {
-    startY: yPos,
-    head: [pointsData[0]],
-    body: pointsData.slice(1),
-    theme: 'striped',
-    headStyles: { fillColor: [12, 158, 217], fontSize: 10, fontStyle: 'bold' },
-    styles: { fontSize: 9, cellPadding: 4 }
-  });
+  if (pointsData.length > 1) {
+    autoTable(doc, {
+      startY: y,
+      head: [pointsData[0]],
+      body: pointsData.slice(1),
+      theme: 'striped',
+      headStyles: { fillColor: [139, 92, 246], fontSize: 9, fontStyle: 'bold' },
+      styles: { fontSize: 8, cellPadding: 3 }
+    });
+    return doc.lastAutoTable.finalY + 10;
+  }
 
-  addFooter(doc, pageNum);
+  return y;
 };
 
-const addBugAnalysis = async (doc, metrics, chartImages, pageNum) => {
-  addPageHeader(doc, 'BUG ANALYSIS');
+const addBugAnalysis = (doc, metrics, startY) => {
+  let y = startY;
+  
+  addSectionHeader(doc, 'BUG ANALYSIS', y);
+  y += 20;
 
-  let yPos = 50;
-
+  // Bug summary
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Total Bugs: ${metrics.qualityMetrics.totalBugs}`, MARGIN, yPos);
-  doc.text(`Resolved: ${metrics.qualityMetrics.resolvedBugs}`, MARGIN, yPos + 8);
-  yPos += 20;
+  doc.setTextColor(COLORS.text);
+  doc.text(`Total Bugs: ${metrics.qualityMetrics.totalBugs}`, MARGIN, y);
+  doc.text(`Resolved: ${metrics.qualityMetrics.resolvedBugs}`, MARGIN, y + 8);
+  doc.text(`Bug Density: ${metrics.qualityMetrics.bugDensity}%`, MARGIN, y + 16);
+  y += 28;
 
-  const bugData = [
-    ['PRIORITY', 'COUNT', 'PERCENTAGE']
-  ];
+  // Bugs by priority
+  const bugData = [['Priority', 'Count', 'Percentage']];
   const totalBugs = metrics.qualityMetrics.totalBugs || 1;
   Object.entries(metrics.qualityMetrics.bugsByPriority).forEach(([priority, count]) => {
     bugData.push([priority, count.toString(), `${((count / totalBugs) * 100).toFixed(1)}%`]);
   });
 
-  autoTable(doc, {
-    startY: yPos,
-    head: [bugData[0]],
-    body: bugData.slice(1),
-    theme: 'striped',
-    headStyles: { fillColor: [239, 68, 68], fontSize: 10, fontStyle: 'bold', textColor: [255, 255, 255] },
-    styles: { fontSize: 9, cellPadding: 4 }
-  });
+  if (bugData.length > 1) {
+    autoTable(doc, {
+      startY: y,
+      head: [bugData[0]],
+      body: bugData.slice(1),
+      theme: 'striped',
+      headStyles: { fillColor: [239, 68, 68], fontSize: 9, fontStyle: 'bold', textColor: [255, 255, 255] },
+      styles: { fontSize: 8, cellPadding: 3 }
+    });
+    return doc.lastAutoTable.finalY + 10;
+  }
 
-  addFooter(doc, pageNum);
+  return y;
 };
 
-const addLabelAnalysis = async (doc, metrics, chartImages, pageNum) => {
-  addPageHeader(doc, 'LABEL ANALYSIS');
+const addLabelAnalysis = (doc, metrics, startY) => {
+  let y = startY;
+  
+  addSectionHeader(doc, 'LABEL ANALYSIS', y);
+  y += 20;
 
-  let yPos = 50;
-
-  const labelData = [
-    ['LABEL', 'USAGE COUNT', 'PERCENTAGE']
-  ];
-
+  const labelData = [['Label', 'Usage Count', 'Percentage']];
   const totalWithLabels = Object.values(metrics.labelMetrics.labelCount).reduce((a, b) => a + b, 0) || 1;
-  metrics.labelMetrics.topLabels.forEach(([label, count]) => {
+  
+  metrics.labelMetrics.topLabels.slice(0, 15).forEach(([label, count]) => {
     labelData.push([label, count.toString(), `${((count / totalWithLabels) * 100).toFixed(1)}%`]);
   });
 
   autoTable(doc, {
-    startY: yPos,
+    startY: y,
     head: [labelData[0]],
     body: labelData.slice(1),
     theme: 'striped',
-    headStyles: { fillColor: [12, 158, 217], fontSize: 10, fontStyle: 'bold' },
-    styles: { fontSize: 9, cellPadding: 4 }
+    headStyles: { fillColor: [14, 165, 233], fontSize: 9, fontStyle: 'bold' },
+    styles: { fontSize: 8, cellPadding: 3 }
   });
 
-  addFooter(doc, pageNum);
+  return doc.lastAutoTable.finalY + 10;
 };
 
-const addDetailedTables = (doc, metrics, startPageNum) => {
-  let pageNum = startPageNum;
-  addPageHeader(doc, 'DETAILED ISSUE REPORT');
+const addTestExecution = (doc, metrics, startY) => {
+  let y = startY;
+  
+  addSectionHeader(doc, 'TEST EXECUTION', y);
+  y += 20;
 
-  const issueData = [
-    ['KEY', 'SUMMARY', 'TYPE', 'STATUS', 'ASSIGNEE']
+  const testMetrics = metrics.advancedAnalytics.testMetrics;
+  
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.text);
+  doc.text(`Total Tests: ${testMetrics.total}`, MARGIN, y);
+  y += 10;
+
+  const testData = [
+    ['Status', 'Count', 'Percentage'],
+    ['Passed', testMetrics.passed.toString(), `${((testMetrics.passed / (testMetrics.total || 1)) * 100).toFixed(1)}%`],
+    ['Failed', testMetrics.failed.toString(), `${((testMetrics.failed / (testMetrics.total || 1)) * 100).toFixed(1)}%`],
+    ['Blocked', testMetrics.blocked.toString(), `${((testMetrics.blocked / (testMetrics.total || 1)) * 100).toFixed(1)}%`]
   ];
 
-  metrics.detailedIssues.forEach(issue => {
+  autoTable(doc, {
+    startY: y,
+    head: [testData[0]],
+    body: testData.slice(1),
+    theme: 'striped',
+    headStyles: { fillColor: [16, 185, 129], fontSize: 9, fontStyle: 'bold' },
+    styles: { fontSize: 8, cellPadding: 3 }
+  });
+
+  return doc.lastAutoTable.finalY + 10;
+};
+
+const addDetailedIssues = (doc, metrics, startPageNum) => {
+  let pageNum = startPageNum;
+  
+  addSectionHeader(doc, 'DETAILED ISSUES', MARGIN);
+
+  const issueData = [['Key', 'Summary', 'Type', 'Status', 'Assignee', 'Points']];
+
+  metrics.detailedIssues.slice(0, 100).forEach(issue => {
     issueData.push([
       issue.key,
-      issue.summary.substring(0, 40) + (issue.summary.length > 40 ? '...' : ''),
-      issue.type,
-      issue.status,
-      issue.assignee
+      (issue.summary || '').substring(0, 35) + ((issue.summary || '').length > 35 ? '...' : ''),
+      issue.type || '-',
+      issue.status || '-',
+      (issue.assignee || 'Unassigned').substring(0, 15),
+      issue.storyPoints > 0 ? issue.storyPoints.toString() : '-'
     ]);
   });
 
   autoTable(doc, {
-    startY: 50,
+    startY: MARGIN + 20,
     head: [issueData[0]],
     body: issueData.slice(1),
     theme: 'striped',
-    headStyles: { fillColor: [12, 158, 217], fontSize: 9, fontStyle: 'bold' },
-    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: [14, 165, 233], fontSize: 8, fontStyle: 'bold' },
+    styles: { fontSize: 7, cellPadding: 2 },
     columnStyles: {
-      1: { cellWidth: 60 }
+      0: { cellWidth: 20 },
+      1: { cellWidth: 55 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 25 },
+      4: { cellWidth: 35 },
+      5: { cellWidth: 15 }
     },
     didDrawPage: (data) => {
       addFooter(doc, pageNum);
@@ -327,19 +484,19 @@ const addDetailedTables = (doc, metrics, startPageNum) => {
   });
 };
 
-const addPageHeader = (doc, title) => {
-  doc.setFontSize(18);
+const addSectionHeader = (doc, title, y) => {
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.text);
-  doc.text(title, MARGIN, 30);
+  doc.text(title, MARGIN, y + 8);
   
+  doc.setDrawColor(14, 165, 233);
   doc.setLineWidth(0.5);
-  doc.setDrawColor(12, 158, 217);
-  doc.line(MARGIN, 35, PAGE_WIDTH - MARGIN, 35);
+  doc.line(MARGIN, y + 12, MARGIN + 50, y + 12);
 };
 
 const addFooter = (doc, pageNum) => {
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(COLORS.textSecondary);
   doc.text(
