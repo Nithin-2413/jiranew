@@ -192,18 +192,27 @@ const calculateLabelMetrics = (issues) => {
     const labels = issue.fields.labels || [];
     const issueType = issue.fields.issuetype?.name || 'Unknown';
     
-    labels.forEach(label => {
-      labelCount[label] = (labelCount[label] || 0) + 1;
+    if (labels.length === 0) {
+      labelCount['Unlabeled'] = (labelCount['Unlabeled'] || 0) + 1;
       
-      if (!labelByIssueType[label]) {
-        labelByIssueType[label] = {};
+      if (!labelByIssueType['Unlabeled']) {
+        labelByIssueType['Unlabeled'] = {};
       }
-      labelByIssueType[label][issueType] = (labelByIssueType[label][issueType] || 0) + 1;
-    });
+      labelByIssueType['Unlabeled'][issueType] = (labelByIssueType['Unlabeled'][issueType] || 0) + 1;
+    } else {
+      labels.forEach(label => {
+        labelCount[label] = (labelCount[label] || 0) + 1;
+        
+        if (!labelByIssueType[label]) {
+          labelByIssueType[label] = {};
+        }
+        labelByIssueType[label][issueType] = (labelByIssueType[label][issueType] || 0) + 1;
+      });
 
-    if (labels.length > 1) {
-      const combo = labels.sort().join(' + ');
-      labelCombinations[combo] = (labelCombinations[combo] || 0) + 1;
+      if (labels.length > 1) {
+        const combo = labels.sort().join(' + ');
+        labelCombinations[combo] = (labelCombinations[combo] || 0) + 1;
+      }
     }
   });
 

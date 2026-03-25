@@ -9,16 +9,16 @@ const MetricsCards = ({ metrics }) => {
       title: 'Total Issues',
       value: metrics.volumeMetrics.total,
       icon: FileText,
-      iconBg: 'from-blue-100 to-cyan-100',
-      iconColor: 'text-blue-600',
+      iconBg: 'from-cyan-500/20 to-blue-500/20',
+      iconColor: 'text-cyan-400',
       testId: 'metric-total-issues'
     },
     {
       title: 'Completion Rate',
       value: `${completionRate}%`,
       icon: TrendingUp,
-      iconBg: 'from-green-100 to-emerald-100',
-      iconColor: 'text-green-600',
+      iconBg: 'from-emerald-500/20 to-green-500/20',
+      iconColor: 'text-emerald-400',
       testId: 'metric-completion-rate'
     },
     {
@@ -26,16 +26,16 @@ const MetricsCards = ({ metrics }) => {
       value: metrics.storyPointsMetrics.totalPoints || 0,
       subtitle: `${metrics.storyPointsMetrics.issuesWithPoints || 0} issues`,
       icon: Target,
-      iconBg: 'from-purple-100 to-pink-100',
-      iconColor: 'text-purple-600',
+      iconBg: 'from-purple-500/20 to-pink-500/20',
+      iconColor: 'text-purple-400',
       testId: 'metric-story-points'
     },
     {
       title: 'Team Members',
       value: metrics.teamMetrics.totalMembers,
       icon: Users,
-      iconBg: 'from-indigo-100 to-blue-100',
-      iconColor: 'text-indigo-600',
+      iconBg: 'from-indigo-500/20 to-blue-500/20',
+      iconColor: 'text-indigo-400',
       testId: 'metric-team-members'
     },
     {
@@ -43,16 +43,16 @@ const MetricsCards = ({ metrics }) => {
       value: metrics.qualityMetrics.totalBugs,
       subtitle: `${metrics.qualityMetrics.resolvedBugs} resolved`,
       icon: Bug,
-      iconBg: 'from-red-100 to-rose-100',
-      iconColor: 'text-red-600',
+      iconBg: 'from-rose-500/20 to-red-500/20',
+      iconColor: 'text-rose-400',
       testId: 'metric-bugs'
     },
     {
       title: 'Avg Resolution',
       value: `${metrics.timeMetrics.avgResolutionTime}d`,
       icon: Clock,
-      iconBg: 'from-amber-100 to-orange-100',
-      iconColor: 'text-amber-600',
+      iconBg: 'from-amber-500/20 to-orange-500/20',
+      iconColor: 'text-amber-400',
       testId: 'metric-resolution-time'
     },
     {
@@ -60,8 +60,8 @@ const MetricsCards = ({ metrics }) => {
       value: metrics.advancedAnalytics.testMetrics.total,
       subtitle: `${metrics.advancedAnalytics.testMetrics.passed} passed`,
       icon: CheckCircle2,
-      iconBg: 'from-teal-100 to-cyan-100',
-      iconColor: 'text-teal-600',
+      iconBg: 'from-teal-500/20 to-emerald-500/20',
+      iconColor: 'text-teal-400',
       testId: 'metric-tests'
     },
     {
@@ -69,8 +69,8 @@ const MetricsCards = ({ metrics }) => {
       value: Math.round(metrics.storyPointsMetrics.completedPoints / 2) || 0,
       subtitle: 'pts/sprint',
       icon: Zap,
-      iconBg: 'from-yellow-100 to-amber-100',
-      iconColor: 'text-yellow-600',
+      iconBg: 'from-yellow-500/20 to-amber-500/20',
+      iconColor: 'text-yellow-400',
       testId: 'metric-velocity'
     }
   ];
@@ -87,13 +87,13 @@ const MetricsCards = ({ metrics }) => {
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-slate-500 mb-1">{metric.title}</p>
-                <p className="text-3xl font-bold text-slate-900">{metric.value}</p>
+                <p className="text-sm font-medium text-slate-400 mb-1">{metric.title}</p>
+                <p className="text-3xl font-bold text-white tracking-tight">{metric.value}</p>
                 {metric.subtitle && (
-                  <p className="text-xs text-slate-400 mt-1">{metric.subtitle}</p>
+                  <p className="text-xs text-slate-500 mt-1">{metric.subtitle}</p>
                 )}
               </div>
-              <div className={`bg-gradient-to-br ${metric.iconBg} p-3 rounded-xl shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+              <div className={`bg-gradient-to-br ${metric.iconBg} p-3 rounded-xl shadow-sm border border-white/5 group-hover:scale-110 transition-transform duration-300`}>
                 <Icon className={metric.iconColor} size={24} />
               </div>
             </div>
