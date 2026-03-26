@@ -315,61 +315,46 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
       {/* ── MAIN CONTENT ── */}
       <div className="max-w-[1600px] mx-auto px-8 py-8">
 
-        {/* Universal Filter Bar */}
-        <div className="universal-filter-bar">
-          <div className="filter-group">
-            <label>Start Date</label>
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={e => setFilters(f => ({ ...f, startDate: e.target.value }))}
-            />
+        {/* Action Bar */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'white',
+          padding: '16px 24px',
+          borderRadius: '16px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          marginBottom: '24px',
+          border: '1px solid rgba(255,140,66,0.2)'
+        }}>
+          <div>
+            <h2 style={{ fontFamily: 'Outfit,sans-serif', fontSize: '1.1rem', fontWeight: 600, color: '#1E293B', margin: 0 }}>
+              Jira Report Controls
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: '#64748B', margin: 0, marginTop: '4px' }}>
+              Configure filters using the top right button, then generate your report.
+            </p>
           </div>
-          <div className="filter-group">
-            <label>End Date</label>
-            <input
-              type="date"
-              value={filters.endDate}
-              onChange={e => setFilters(f => ({ ...f, endDate: e.target.value }))}
-            />
-          </div>
-          {teams.length > 0 && (
-            <div className="filter-group">
-              <label>Team</label>
-              <select value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)}>
-                <option value="all">All Teams</option>
-                {teams.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div className="filter-group" style={{ flex: 'none' }}>
-            <label style={{ visibility: 'hidden' }}>Action</label>
+          <div style={{ display: 'flex', gap: '12px' }}>
             <button
               onClick={handleGenerateReport}
               disabled={loading}
               className="btn-primary"
-              style={{ width: '100%', justifyContent: 'center' }}
             >
               <BarChart3 size={16} />
               {loading ? 'Loading...' : 'Generate Report'}
             </button>
-          </div>
-          {metrics && (
-            <div className="filter-group" style={{ flex: 'none' }}>
-              <label style={{ visibility: 'hidden' }}>Export</label>
+            {metrics && (
               <button
                 onClick={() => setShowExportModal(true)}
                 disabled={loading}
                 className="btn-secondary"
-                style={{ width: '100%', justifyContent: 'center' }}
               >
                 <Download size={16} />
                 Export
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Progress */}

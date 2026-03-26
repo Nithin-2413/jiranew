@@ -17,13 +17,15 @@ const COMMON_ISSUE_TYPES = [
   'Sub-task'
 ];
 
-const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
+const FilterModal = ({ open, onClose, filters, setFilters, onApply, teams = [], selectedTeam, setSelectedTeam }) => {
   const [localFilters, setLocalFilters] = useState(filters);
+  const [localTeam, setLocalTeam] = useState(selectedTeam || 'all');
   const datePresets = getDatePresets();
 
   useEffect(() => {
     setLocalFilters(filters);
-  }, [filters, open]);
+    setLocalTeam(selectedTeam || 'all');
+  }, [filters, selectedTeam, open]);
 
   const handlePresetSelect = (preset) => {
     setLocalFilters(prev => ({
@@ -46,6 +48,9 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
 
   const handleApply = () => {
     setFilters(localFilters);
+    if (setSelectedTeam) {
+      setSelectedTeam(localTeam);
+    }
     onApply();
   };
 
@@ -59,6 +64,7 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
       sprint: ''
     };
     setLocalFilters(clearedFilters);
+    setLocalTeam('all');
   };
 
   return (
@@ -103,6 +109,27 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply }) => {
               </div>
             </div>
           </div>
+
+          {/* Team Filter */}
+          {teams.length > 0 && (
+            <div className="space-y-4">
+              <Label htmlFor="team-select" className="text-slate-700 font-semibold text-sm uppercase tracking-wide flex items-center gap-2">
+                Team
+              </Label>
+              <select
+                id="team-select"
+                data-testid="team-select"
+                value={localTeam}
+                onChange={(e) => setLocalTeam(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              >
+                <option value="all">All Teams</option>
+                {teams.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Quick Presets */}
           <div>
