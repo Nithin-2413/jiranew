@@ -1,19 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement,
-  RadialLinearScale
-} from 'chart.js';
-import { Bar, Doughnut, Pie } from 'react-chartjs-2';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Filter } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -29,26 +14,24 @@ import {
   SelectValue,
 } from './ui/select';
 import { Skeleton } from './ui/skeleton';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer, LabelList,
+  PieChart, Pie, Cell,
+  LineChart, Line
+} from 'recharts';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement,
-  RadialLinearScale,
-  ChartDataLabels
-);
-
-// Brighter colors for dark mode
-const VIBRANT_COLORS = [
-  '#00D9FF', '#8B5CF6', '#F59E0B', '#10B981', '#EC4899',
-  '#F97316', '#6366F1', '#14B8A6', '#EF4444', '#84CC16',
-  '#06B6D4', '#A855F7'
+/**
+ * Butterscotch Light Color Palette for Charts
+ */
+const COLORS = [
+  '#FF8C42', // Primary Orange
+  '#3B82F6', // Info Blue
+  '#10B981', // Success Green
+  '#F59E0B', // Warning Amber
+  '#8B5CF6', // Purple
+  '#EF4444', // Danger Red
+  '#14B8A6', // Teal
+  '#EC4899', // Pink
 ];
 
 const ChartCard = ({ title, subtitle, children, filtersConfig, onFilterChange, chartId }) => {
@@ -58,31 +41,34 @@ const ChartCard = ({ title, subtitle, children, filtersConfig, onFilterChange, c
     <div className="chart-card" data-testid={chartId}>
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h4 className="text-lg font-bold text-white tracking-wide">{title}</h4>
-          {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+          <h4 className="text-lg font-bold text-gray-800 tracking-wide" style={{ fontFamily: 'Outfit, sans-serif' }}>{title}</h4>
+          {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
         </div>
         {hasFilters && (
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 bg-[#1E293B] hover:bg-[#334155] border-white/10 text-xs text-cyan-400 transition-colors shadow-sm">
+              <Button variant="outline" size="sm" className="h-8 bg-[#FFF9F0] hover:bg-[#FFF4E6] border-[#FFD4A8] text-xs text-[#FF8C42] transition-colors shadow-sm">
                 <Filter size={14} className="mr-2" />
                 Filters
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 bg-[#0F172A] border border-white/10 p-4 shadow-xl shadow-black/50 rounded-xl z-50" align="end">
+            <PopoverContent className="w-64 bg-white border border-[#FFD4A8] p-4 shadow-xl shadow-[#FF8C42]/20 rounded-xl z-50" align="end">
               <div className="space-y-4">
-                <h4 className="font-semibold text-white text-sm mb-3 tracking-wide">Chart Scope</h4>
+                <h4 className="font-semibold text-gray-800 text-sm mb-3 tracking-wide flex items-center gap-2">
+                  <Filter size={16} className="text-[#FF8C42]" />
+                  Chart Scope
+                </h4>
                 
                 {filtersConfig.assignees?.length > 0 && (
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assignee</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Assignee</label>
                     <Select value={filtersConfig.currentAssignee || 'all'} onValueChange={(v) => onFilterChange('assignee', v)}>
-                      <SelectTrigger className="h-8 bg-[#1E293B] border-white/10 text-xs text-slate-200">
+                      <SelectTrigger className="h-8 bg-[#FFF9F0] border-[#FFD4A8] text-xs text-gray-800 focus:ring-[#FF8C42]">
                         <SelectValue placeholder="All Members" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1E293B] border-white/10 max-h-[200px] z-[60]">
-                        <SelectItem value="all" className="text-xs text-slate-200">All Members</SelectItem>
-                        {filtersConfig.assignees.map(a => <SelectItem key={a} value={a} className="text-xs text-slate-200">{a}</SelectItem>)}
+                      <SelectContent className="bg-white border-[#FFD4A8] z-[60]">
+                        <SelectItem value="all" className="text-xs">All Members</SelectItem>
+                        {filtersConfig.assignees.map(a => <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -90,14 +76,14 @@ const ChartCard = ({ title, subtitle, children, filtersConfig, onFilterChange, c
 
                 {filtersConfig.labels?.length > 0 && (
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team (Label)</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Team / Category</label>
                     <Select value={filtersConfig.currentLabel || 'all'} onValueChange={(v) => onFilterChange('label', v)}>
-                      <SelectTrigger className="h-8 bg-[#1E293B] border-white/10 text-xs text-slate-200">
-                        <SelectValue placeholder="All Teams" />
+                      <SelectTrigger className="h-8 bg-[#FFF9F0] border-[#FFD4A8] text-xs text-gray-800 focus:ring-[#FF8C42]">
+                        <SelectValue placeholder="All Categories" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1E293B] border-white/10 max-h-[200px] z-[60]">
-                        <SelectItem value="all" className="text-xs text-slate-200">All Teams</SelectItem>
-                        {filtersConfig.labels.map(l => <SelectItem key={l} value={l} className="text-xs text-slate-200">{l}</SelectItem>)}
+                      <SelectContent className="bg-white border-[#FFD4A8] z-[60]">
+                        <SelectItem value="all" className="text-xs">All Categories</SelectItem>
+                        {filtersConfig.labels.map(l => <SelectItem key={l} value={l} className="text-xs">{l}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -105,14 +91,14 @@ const ChartCard = ({ title, subtitle, children, filtersConfig, onFilterChange, c
 
                 {filtersConfig.types?.length > 0 && (
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Issue Type</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Issue Type</label>
                     <Select value={filtersConfig.currentType || 'all'} onValueChange={(v) => onFilterChange('type', v)}>
-                      <SelectTrigger className="h-8 bg-[#1E293B] border-white/10 text-xs text-slate-200">
+                      <SelectTrigger className="h-8 bg-[#FFF9F0] border-[#FFD4A8] text-xs text-gray-800 focus:ring-[#FF8C42]">
                         <SelectValue placeholder="All Types" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1E293B] border-white/10 max-h-[200px] z-[60]">
-                        <SelectItem value="all" className="text-xs text-slate-200">All Types</SelectItem>
-                        {filtersConfig.types.map(t => <SelectItem key={t} value={t} className="text-xs text-slate-200">{t}</SelectItem>)}
+                      <SelectContent className="bg-white border-[#FFD4A8] z-[60]">
+                        <SelectItem value="all" className="text-xs">All Types</SelectItem>
+                        {filtersConfig.types.map(t => <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -131,8 +117,8 @@ const ChartCard = ({ title, subtitle, children, filtersConfig, onFilterChange, c
 
 const ChartSkeleton = () => (
   <div className="chart-card">
-    <Skeleton className="h-6 w-48 mb-4 bg-slate-800" />
-    <Skeleton className="h-[280px] w-full bg-slate-800/50 rounded-lg" />
+    <Skeleton className="h-6 w-48 mb-4 bg-[#FFE4CC]" />
+    <Skeleton className="h-[280px] w-full bg-[#FFE4CC]/50 rounded-lg" />
   </div>
 );
 
@@ -153,12 +139,57 @@ const getFilteredIssues = (issues, filters) => {
   });
 };
 
+/**
+ * Custom Tooltip for Butterscotch Light
+ */
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{
+        backgroundColor: '#FFFFFF',
+        border: '1px solid #FF8C42',
+        borderRadius: '8px',
+        padding: '12px 16px',
+        boxShadow: '0 8px 24px rgba(255,140,66,0.15)',
+        fontFamily: 'Plus Jakarta Sans',
+      }}>
+        <p style={{ margin: 0, fontWeight: 700, color: '#1F2937', marginBottom: '4px' }}>{label}</p>
+        {payload.map((entry, index) => (
+          <div key={`item-${index}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: entry.color }} />
+            <span style={{ color: '#6B7280' }}>
+              {entry.name}: <strong style={{ color: '#1F2937' }}>{entry.value}</strong>
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+/**
+ * Custom Pie Label (Outlined outside)
+ */
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) => {
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) + 30; // Push outside
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  if (percent < 0.05) return null; // Don't show labels for tiny slices
+
+  return (
+    <text x={x} y={y} fill="#4B5563" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" style={{ fontSize: '11px', fontFamily: 'Plus Jakarta Sans', fontWeight: 600 }}>
+      {`${name} ${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
 const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
   
-  // Create shared default state object
   const defaultFilters = { assignee: 'all', label: 'all', type: 'all' };
 
-  // Independent Filter States for each visualization
   const [typeFilters, setTypeFilters] = useState(defaultFilters);
   const [statusFilters, setStatusFilters] = useState(defaultFilters);
   const [teamFilters, setTeamFilters] = useState(defaultFilters);
@@ -168,17 +199,10 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
   const [labelFilters, setLabelFilters] = useState(defaultFilters);
   const [tableFilters, setTableFilters] = useState(defaultFilters);
 
-  // Extract unique taxonomy for dropdown options
   const taxonomy = useMemo(() => {
     const list = metrics?.detailedIssues || [];
-    
-    // Assignees
     const aSet = new Set(list.map(i => i.assignee).filter(Boolean));
-    
-    // Issue Types
     const tSet = new Set(list.map(i => i.type).filter(Boolean));
-    
-    // Labels (incorporating 'Unlabeled' marker)
     const lSet = new Set(['Unlabeled']);
     list.forEach(i => {
       (i.labels || []).forEach(l => lSet.add(l));
@@ -191,7 +215,6 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
     };
   }, [metrics?.detailedIssues]);
 
-  // Unified configuration generator for ChartCard
   const generateFilterConfig = (currentFilters) => ({
     assignees: taxonomy.assignees,
     labels: taxonomy.labels,
@@ -211,16 +234,7 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
     const tallies = {};
     issues.forEach(i => tallies[i.type || 'Unknown'] = (tallies[i.type || 'Unknown'] || 0) + 1);
     
-    return {
-      labels: Object.keys(tallies),
-      datasets: [{
-        data: Object.values(tallies),
-        backgroundColor: VIBRANT_COLORS,
-        borderWidth: 1,
-        borderColor: '#0F172A',
-        hoverOffset: 10
-      }]
-    };
+    return Object.entries(tallies).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [metrics.detailedIssues, typeFilters]);
 
   // 2. Status Data
@@ -229,16 +243,7 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
     const tallies = {};
     issues.forEach(i => tallies[i.status || 'Unknown'] = (tallies[i.status || 'Unknown'] || 0) + 1);
     
-    return {
-      labels: Object.keys(tallies),
-      datasets: [{
-        label: 'Issues',
-        data: Object.values(tallies),
-        backgroundColor: VIBRANT_COLORS,
-        borderRadius: 8,
-        borderSkipped: false
-      }]
-    };
+    return Object.entries(tallies).map(([name, Issues]) => ({ name, Issues })).sort((a, b) => b.Issues - a.Issues);
   }, [metrics.detailedIssues, statusFilters]);
 
   // 3. Team Performance Data
@@ -251,35 +256,19 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
     });
 
     const labels = teamFilters.assignee === 'all' ? taxonomy.assignees : [teamFilters.assignee];
-    return {
-      labels,
-      datasets: [{
-        label: 'Story Points',
-        data: labels.map(l => pointsMap[l] || 0),
-        backgroundColor: '#8B5CF6',
-        borderRadius: 8
-      }]
-    };
+    // Return objects mapped for Recharts horizontal bar
+    return labels.map(l => ({ name: l, Points: pointsMap[l] || 0 })).filter(d => d.Points > 0).sort((a, b) => b.Points - a.Points);
   }, [metrics.detailedIssues, teamFilters, taxonomy.assignees]);
 
   // 4. Bug Priority Data
   const bugData = useMemo(() => {
-    // Force issue type = 'Bug' inherently for this chart
     const enforcedBugFilters = { ...bugFilters, type: 'Bug' };
     const issues = getFilteredIssues(metrics.detailedIssues, enforcedBugFilters);
     
     const tallies = {};
     issues.forEach(i => tallies[i.priority || 'None'] = (tallies[i.priority || 'None'] || 0) + 1);
     
-    return {
-      labels: Object.keys(tallies),
-      datasets: [{
-        data: Object.values(tallies),
-        backgroundColor: ['#EF4444', '#F59E0B', '#F97316', '#3B82F6', '#14B8A6'],
-        borderWidth: 1,
-        borderColor: '#0F172A'
-      }]
-    };
+    return Object.entries(tallies).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [metrics.detailedIssues, bugFilters]);
 
   // 5. Story Points by Status
@@ -292,21 +281,11 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
       }
     });
 
-    const labels = Object.keys(tallies);
-    return {
-      labels: labels.length > 0 ? labels : ['No Data'],
-      datasets: [{
-        label: 'Story Points',
-        data: labels.length > 0 ? Object.values(tallies) : [0],
-        backgroundColor: labels.length > 0 ? ['#10B981', '#00D9FF', '#F59E0B', '#8B5CF6'] : ['#334155'],
-        borderRadius: 8
-      }]
-    };
+    return Object.entries(tallies).map(([name, Points]) => ({ name, Points })).sort((a, b) => b.Points - a.Points);
   }, [metrics.detailedIssues, pointsFilters]);
 
   // 6. Test Execution Data
   const testMetricsData = useMemo(() => {
-    // Force issue type = 'Test' inherently for this chart
     const enforcedTestFilters = { ...testFilters, type: 'Test' };
     const issues = getFilteredIssues(metrics.detailedIssues, enforcedTestFilters);
     let passed = 0, failed = 0, blocked = 0;
@@ -320,15 +299,11 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
 
     return {
       total: passed + failed + blocked,
-      data: {
-        labels: ['Passed', 'Failed', 'Blocked'],
-        datasets: [{
-          data: [passed, failed, blocked],
-          backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
-          borderWidth: 1,
-          borderColor: '#0F172A'
-        }]
-      }
+      data: [
+        { name: 'Passed', value: passed },
+        { name: 'Failed', value: failed },
+        { name: 'Blocked', value: blocked }
+      ].filter(d => d.value > 0)
     };
   }, [metrics.detailedIssues, testFilters]);
 
@@ -346,60 +321,6 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
     });
     return Object.entries(labelCount).sort((a, b) => b[1] - a[1]);
   }, [metrics.detailedIssues, labelFilters]);
-
-  // Chart Options configured for Dark Theme
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    color: '#94A3B8',
-    plugins: {
-      legend: {
-        display: true,
-        position: 'bottom',
-        labels: {
-          font: { family: 'Inter', size: 11 },
-          padding: 15,
-          color: '#94A3B8',
-          usePointStyle: true,
-          pointStyle: 'circle'
-        }
-      },
-      tooltip: {
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-        borderColor: 'rgba(255,255,255,0.1)',
-        borderWidth: 1,
-        padding: 12,
-        cornerRadius: 8,
-        titleFont: { size: 13, family: 'Inter', weight: 600 },
-        bodyFont: { size: 12, family: 'Inter' },
-        titleColor: '#F8FAFC',
-        bodyColor: '#E2E8F0'
-      },
-      datalabels: {
-        color: '#FFFFFF',
-        font: { weight: 'bold', size: 11 },
-        textShadowBlur: 4,
-        textShadowColor: 'rgba(0,0,0,0.8)',
-        formatter: (value) => value > 0 ? value : '',
-        display: (context) => context.dataset.data[context.dataIndex] > 0
-      }
-    }
-  };
-
-  const barChartOptions = {
-    ...chartOptions,
-    scales: {
-      y: {
-        beginAtZero: true,
-        grid: { color: 'rgba(255,255,255,0.05)' },
-        ticks: { font: { family: 'Inter' }, color: '#94A3B8' }
-      },
-      x: {
-        grid: { display: false },
-        ticks: { font: { family: 'Inter' }, color: '#94A3B8', maxRotation: 45, minRotation: 0 }
-      }
-    }
-  };
 
   if (loading) {
     return (
@@ -425,9 +346,19 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
             filtersConfig={generateFilterConfig(typeFilters)}
             onFilterChange={handleFilterChange(setTypeFilters, typeFilters)}
           >
-            {typeData.labels.length > 0 ? (
-              <Doughnut ref={(ref) => { if (ref) chartRefs.current.issueTypeChart = ref; }} data={typeData} options={chartOptions} />
-            ) : <div className="flex h-full items-center justify-center text-slate-500">No data found</div>}
+            {typeData.length > 0 ? (
+              <div ref={r => { if (r && chartRefs.current) chartRefs.current.issueTypeChart = r; }} style={{ width: '100%', height: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart animationDuration={800}>
+                    <Pie data={typeData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} dataKey="value" labelLine={false} label={renderCustomizedLabel}>
+                      {typeData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                    </Pie>
+                    <RechartsTooltip content={<CustomTooltip />} />
+                    <RechartsLegend wrapperStyle={{ fontFamily: 'Plus Jakarta Sans', fontSize: '12px' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : <div className="flex h-full items-center justify-center text-gray-400">No data found</div>}
           </ChartCard>
           
           <ChartCard 
@@ -436,9 +367,21 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
             filtersConfig={generateFilterConfig(statusFilters)}
             onFilterChange={handleFilterChange(setStatusFilters, statusFilters)}
           >
-            {statusData.labels.length > 0 ? (
-              <Bar ref={(ref) => { if (ref) chartRefs.current.statusChart = ref; }} data={statusData} options={barChartOptions} />
-            ) : <div className="flex h-full items-center justify-center text-slate-500">No data found</div>}
+            {statusData.length > 0 ? (
+              <div ref={r => { if (r && chartRefs.current) chartRefs.current.statusChart = r; }} style={{ width: '100%', height: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={statusData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }} animationDuration={800}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#FFE4CC" />
+                    <XAxis dataKey="name" tick={{ fontFamily: 'Inter', fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontFamily: 'Inter', fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
+                    <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,140,66,0.05)' }} />
+                    <Bar dataKey="Issues" fill="#FF8C42" radius={[4, 4, 0, 0]}>
+                      <LabelList dataKey="Issues" position="top" style={{ fill: '#FF8C42', fontSize: 12, fontWeight: 'bold' }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : <div className="flex h-full items-center justify-center text-gray-400">No data found</div>}
           </ChartCard>
         </div>
       </div>
@@ -454,21 +397,22 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
             filtersConfig={generateFilterConfig(teamFilters)}
             onFilterChange={handleFilterChange(setTeamFilters, teamFilters)}
           >
-            <div style={{ height: Math.max(300, (teamFilters.assignee === 'all' ? taxonomy.assignees.length : 1) * 40) + 'px' }}>
-             {filteredTeamData.labels.length > 0 ? (
-               <Bar 
-                 ref={(ref) => { if (ref) chartRefs.current.teamPointsChart = ref; }}
-                 data={filteredTeamData} 
-                 options={{
-                   ...barChartOptions,
-                   indexAxis: 'y',
-                   scales: {
-                     x: { ...barChartOptions.scales.y, grid: { color: 'rgba(255,255,255,0.05)' } },
-                     y: { ...barChartOptions.scales.x, grid: { display: false } }
-                   }
-                 }} 
-               />
-             ) : <div className="flex h-full items-center justify-center text-slate-500">No data found</div>}
+            <div style={{ height: Math.max(300, filteredTeamData.length * 50) + 'px' }}>
+             {filteredTeamData.length > 0 ? (
+               <div ref={r => { if (r && chartRefs.current) chartRefs.current.teamPointsChart = r; }} style={{ width: '100%', height: '100%' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart layout="vertical" data={filteredTeamData} margin={{ top: 10, right: 30, left: 20, bottom: 0 }} animationDuration={800}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#FFE4CC" />
+                      <XAxis type="number" tick={{ fontFamily: 'Inter', fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="name" tick={{ fontFamily: 'Inter', fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} width={120} />
+                      <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(59,130,246,0.05)' }} />
+                      <Bar dataKey="Points" fill="#3B82F6" radius={[0, 4, 4, 0]}>
+                         <LabelList dataKey="Points" position="right" style={{ fill: '#3B82F6', fontSize: 12, fontWeight: 'bold' }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+               </div>
+             ) : <div className="flex h-full items-center justify-center text-gray-400">No data found</div>}
             </div>
           </ChartCard>
         </div>
@@ -484,10 +428,20 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
             filtersConfig={generateFilterConfig(bugFilters)}
             onFilterChange={handleFilterChange(setBugFilters, bugFilters)}
           >
-            {bugData.labels.length > 0 ? (
-              <Doughnut data={bugData} options={chartOptions} />
+            {bugData.length > 0 ? (
+              <div ref={r => { if (r && chartRefs.current) chartRefs.current.bugPriorityChart = r; }} style={{ width: '100%', height: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart animationDuration={800}>
+                    <Pie data={bugData} cx="50%" cy="50%" outerRadius={90} dataKey="value" labelLine={false} label={renderCustomizedLabel}>
+                      {bugData.map((entry, index) => <Cell key={`cell-${index}`} fill={['#EF4444', '#F59E0B', '#F97316', '#3B82F6', '#14B8A6'][index % 5]} />)}
+                    </Pie>
+                    <RechartsTooltip content={<CustomTooltip />} />
+                    <RechartsLegend wrapperStyle={{ fontFamily: 'Plus Jakarta Sans', fontSize: '12px' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             ) : (
-              <div className="flex items-center justify-center h-[280px] text-slate-500">
+              <div className="flex items-center justify-center h-[280px] text-gray-400">
                 No bugs found for chosen filters
               </div>
             )}
@@ -499,9 +453,21 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
             filtersConfig={generateFilterConfig(pointsFilters)}
             onFilterChange={handleFilterChange(setPointsFilters, pointsFilters)}
           >
-            {pointsData.labels[0] !== 'No Data' ? (
-               <Bar data={pointsData} options={barChartOptions} />
-            ) : <div className="flex items-center justify-center h-[280px] text-slate-500">No points data</div>}
+            {pointsData.length > 0 ? (
+               <div ref={r => { if (r && chartRefs.current) chartRefs.current.pointsStatusChart = r; }} style={{ width: '100%', height: '100%' }}>
+                 <ResponsiveContainer width="100%" height="100%">
+                   <BarChart data={pointsData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }} animationDuration={800}>
+                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#FFE4CC" />
+                     <XAxis dataKey="name" tick={{ fontFamily: 'Inter', fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
+                     <YAxis tick={{ fontFamily: 'Inter', fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
+                     <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(16,185,129,0.05)' }} />
+                     <Bar dataKey="Points" fill="#10B981" radius={[4, 4, 0, 0]}>
+                       <LabelList dataKey="Points" position="top" style={{ fill: '#10B981', fontSize: 12, fontWeight: 'bold' }} />
+                     </Bar>
+                   </BarChart>
+                 </ResponsiveContainer>
+               </div>
+            ) : <div className="flex items-center justify-center h-[280px] text-gray-400">No points data</div>}
           </ChartCard>
         </div>
       </div>
@@ -518,8 +484,18 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
             onFilterChange={handleFilterChange(setTestFilters, testFilters)}
           >
             {testMetricsData.total > 0 ? (
-                <Pie data={testMetricsData.data} options={chartOptions} />
-            ) : <div className="flex items-center justify-center h-[280px] text-slate-500">No tests found for filters</div>}
+               <div ref={r => { if (r && chartRefs.current) chartRefs.current.testExecutionChart = r; }} style={{ width: '100%', height: '100%' }}>
+                 <ResponsiveContainer width="100%" height="100%">
+                   <PieChart animationDuration={800}>
+                     <Pie data={testMetricsData.data} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value" labelLine={false} label={renderCustomizedLabel}>
+                       {testMetricsData.data.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.name === 'Passed' ? '#10B981' : entry.name === 'Failed' ? '#EF4444' : '#F59E0B'} />)}
+                     </Pie>
+                     <RechartsTooltip content={<CustomTooltip />} />
+                     <RechartsLegend wrapperStyle={{ fontFamily: 'Plus Jakarta Sans', fontSize: '12px' }} />
+                   </PieChart>
+                 </ResponsiveContainer>
+               </div>
+            ) : <div className="flex items-center justify-center h-[280px] text-gray-400">No tests found for filters</div>}
           </ChartCard>
         </div>
       </div>
@@ -552,21 +528,21 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
                       <tr key={label}>
                         <td>
                           {label === 'Unlabeled' ? (
-                            <span className="text-slate-500 italic font-medium px-2 py-0.5 rounded border border-slate-700 bg-slate-800/50">Unlabeled</span>
+                            <span className="text-gray-400 italic font-medium px-2 py-0.5 rounded border border-gray-300 bg-gray-50">Unlabeled</span>
                           ) : (
-                            <span className="label-badge border border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 shadow-sm">{label}</span>
+                            <span className="label-badge border border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-600 shadow-sm">{label}</span>
                           )}
                         </td>
-                        <td className="font-bold text-white">{count}</td>
+                        <td className="font-bold text-gray-800">{count}</td>
                         <td>
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-slate-800 rounded-full h-2 overflow-hidden max-w-[100px]">
+                            <div className="flex-1 bg-[#FFF4E6] rounded-full h-2 overflow-hidden max-w-[100px]">
                               <div 
-                                className={`h-full rounded-full ${label === 'Unlabeled' ? 'bg-slate-500' : 'bg-gradient-to-r from-cyan-500 to-blue-500'}`}
+                                className={`h-full rounded-full ${label === 'Unlabeled' ? 'bg-gray-400' : 'bg-gradient-to-r from-[#FF8C42] to-[#FFB380]'}`}
                                 style={{ width: `${percentage}%` }}
                               />
                             </div>
-                            <span className="text-sm text-slate-400">{percentage}%</span>
+                            <span className="text-sm text-gray-500">{percentage}%</span>
                           </div>
                         </td>
                       </tr>
@@ -575,7 +551,7 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
                 </tbody>
               </table>
             </div>
-          ) : <div className="text-center py-8 text-slate-500">No labels found for filters</div>}
+          ) : <div className="text-center py-8 text-gray-400">No labels found for filters</div>}
         </ChartCard>
       </div>
 
@@ -605,8 +581,8 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
                 <tbody>
                   {getFilteredIssues(metrics.detailedIssues, tableFilters).map((issue) => (
                     <tr key={issue.key}>
-                      <td className="font-bold text-cyan-400 min-w-[80px]">{issue.key}</td>
-                      <td className="max-w-[300px] truncate text-slate-200" title={issue.summary}>
+                      <td className="font-bold text-[#FF8C42] min-w-[80px]">{issue.key}</td>
+                      <td className="max-w-[300px] truncate text-gray-700" title={issue.summary}>
                         {issue.summary?.substring(0, 50)}{issue.summary?.length > 50 ? '...' : ''}
                       </td>
                       <td>
@@ -621,25 +597,25 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
                           {issue.status}
                         </span>
                       </td>
-                      <td className="text-slate-400 whitespace-nowrap">{issue.assignee}</td>
+                      <td className="text-gray-500 whitespace-nowrap">{issue.assignee}</td>
                       <td className="text-center">
                         {issue.storyPoints > 0 ? (
                           <span className="points-badge px-2 py-0.5">{issue.storyPoints}</span>
                         ) : (
-                          <span className="text-slate-600">-</span>
+                          <span className="text-gray-400">-</span>
                         )}
                       </td>
                       <td>
                         <div className="flex flex-wrap gap-1 w-[120px]">
                           {(!issue.labels || issue.labels.length === 0) ? (
-                            <span className="text-slate-600 italic text-[10px]">Unlabeled</span>
+                            <span className="text-gray-400 italic text-[10px]">Unlabeled</span>
                           ) : (
                             <>
                               {issue.labels.slice(0, 2).map(label => (
                                 <span key={label} className="mini-label truncate max-w-[80px]">{label}</span>
                               ))}
                               {issue.labels.length > 2 && (
-                                <span className="mini-label bg-slate-700/50 text-slate-300 border-0">+{issue.labels.length - 2}</span>
+                                <span className="mini-label bg-[#FFEDD5] text-gray-600 border-0">+{issue.labels.length - 2}</span>
                               )}
                             </>
                           )}
@@ -650,7 +626,7 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
                 </tbody>
               </table>
             </div>
-           ) : <div className="text-center py-8 text-slate-500">No issues matching filters</div>}
+           ) : <div className="text-center py-8 text-gray-400">No issues matching filters</div>}
         </ChartCard>
       </div>
     </div>

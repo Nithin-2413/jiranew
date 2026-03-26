@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Settings, Download, Filter, FileText, BarChart3, Users, Bug, Target, Clock, CheckCircle, Zap, Tag } from 'lucide-react';
 import JiraService from '../services/jiraService';
 import { processJiraData } from '../services/dataProcessor';
@@ -29,7 +29,30 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportOptions, setExportOptions] = useState(DEFAULT_EXPORT_OPTIONS);
+  const [teams, setTeams] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState('all');
   const chartRefs = useRef({});
+  const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
+  useEffect(() => {
+    const fetchTeams = async () => {
+      if (!jiraConfig) return;
+      try {
+        const res = await fetch(`${API_URL}/api/jira/teams`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: jiraConfig }),
+        });
+        const data = await res.json();
+        if (data.success && data.teams.length > 0) setTeams(data.teams);
+      } catch (e) {
+        console.warn('Could not load teams:', e);
+      }
+    };
+    fetchTeams();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jiraConfig]);
+
 
   const handleGenerateReport = async () => {
     if (!jiraConfig) {
@@ -117,16 +140,13 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
   const captureCharts = async () => {
     const chartImages = {};
     const html2canvas = (await import('html2canvas')).default;
-    
-    // Slight delay to ensure charts are fully rendered
     await new Promise(resolve => setTimeout(resolve, 800));
-
     for (const [key, ref] of Object.entries(chartRefs.current)) {
       if (ref && ref.canvas) {
         const elementToCapture = ref.canvas.closest('.chart-card') || ref.canvas.parentElement;
         if (elementToCapture) {
           const canvasObj = await html2canvas(elementToCapture, {
-            backgroundColor: '#0F172A', // Dark theme background for exports to match UI
+            backgroundColor: '#FFF9F0',
             scale: 2,
             logging: false
           });
@@ -140,6 +160,7 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
     }
     return chartImages;
   };
+
 
   const handleExportPDF = async () => {
     if (!metrics) {
@@ -235,130 +256,190 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1120] text-slate-200">
-      {/* Header */}
-      <div className="bg-[#0F172A]/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-50 shadow-sm">
+    <div className="min-h-screen" style={{ background: '#FFF9F0' }}>
+
+      {/* ── HEADER ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, #FF8C42 0%, #FFB380 100%)',
+        boxShadow: '0 4px 20px rgba(255,140,66,0.3)',
+        position: 'sticky', top: 0, zIndex: 50,
+      }}>
         <div className="max-w-[1600px] mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
-                <BarChart3 className="text-white" size={24} />
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginRight: '8px'
+              }}>
+                <img 
+                  src="https://res.cloudinary.com/dgotonhu5/image/upload/v1774513747/images__1_-removebg-preview_knsdcs.png" 
+                  alt="Logo" 
+                  style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
+                />
               </div>
-              <div className="h-8 w-px bg-white/10" />
+              <div style={{ width: 1, height: 32, background: 'rgba(255,255,255,0.3)' }} />
               <div>
-                <h1 className="text-xl font-bold text-white tracking-wide">JIRA Analytics</h1>
+                <h1 style={{ fontFamily: 'Outfit,sans-serif', fontSize: '1.25rem', fontWeight: 800, color: 'white', margin: 0, textShadow: '0 1px 3px rgba(0,0,0,0.15)' }}>
+                  JIRA Analytics
+                </h1>
                 {jiraConfig && (
-                  <p className="text-sm text-slate-400">Project: <span className="text-cyan-400 font-semibold">{jiraConfig.projectKey}</span></p>
+                  <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.85)', margin: 0 }}>
+                    Project: <strong>{jiraConfig.projectKey}</strong>
+                  </p>
                 )}
               </div>
             </div>
+
             <div className="flex items-center gap-3">
               <Button
                 data-testid="filter-btn"
                 onClick={() => setShowFilterModal(true)}
-                className="bg-[#1E293B] hover:bg-[#334155] text-slate-200 border border-white/10 font-medium shadow-sm transition-colors"
+                style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.4)', backdropFilter: 'blur(8px)', fontFamily: 'Outfit,sans-serif', fontWeight: 600 }}
               >
-                <Filter size={18} className="mr-2 text-cyan-400" />
+                <Filter size={16} className="mr-2" />
                 Filters
               </Button>
               <Button
                 data-testid="settings-btn"
                 onClick={onOpenConfig}
                 variant="outline"
-                className="bg-[#1E293B] hover:bg-[#334155] text-slate-200 border border-white/10 transition-colors"
+                style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.4)', backdropFilter: 'blur(8px)' }}
               >
-                <Settings size={18} className="text-cyan-400" />
+                <Settings size={16} />
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* ── MAIN CONTENT ── */}
       <div className="max-w-[1600px] mx-auto px-8 py-8">
-        {/* Action Bar */}
-        <div className="bg-[#0F172A]/60 backdrop-blur-md rounded-2xl border border-white/5 p-6 mb-8 shadow-xl">
-          <div className="flex flex-wrap gap-4">
-            <Button
-              data-testid="generate-report-btn"
+
+        {/* Universal Filter Bar */}
+        <div className="universal-filter-bar">
+          <div className="filter-group">
+            <label>Start Date</label>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={e => setFilters(f => ({ ...f, startDate: e.target.value }))}
+            />
+          </div>
+          <div className="filter-group">
+            <label>End Date</label>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={e => setFilters(f => ({ ...f, endDate: e.target.value }))}
+            />
+          </div>
+          {teams.length > 0 && (
+            <div className="filter-group">
+              <label>Team</label>
+              <select value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)}>
+                <option value="all">All Teams</option>
+                {teams.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="filter-group" style={{ flex: 'none' }}>
+            <label style={{ visibility: 'hidden' }}>Action</label>
+            <button
               onClick={handleGenerateReport}
               disabled={loading}
-              className="flex-1 min-w-[200px] bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white h-14 text-base font-semibold shadow-lg shadow-cyan-500/20 transition-all border-0"
+              className="btn-primary"
+              style={{ width: '100%', justifyContent: 'center' }}
             >
-              <BarChart3 size={20} className="mr-2" />
-              {loading ? 'Generating Report...' : 'Generate Report'}
-            </Button>
-            {metrics && (
-              <Button
-                data-testid="export-btn"
+              <BarChart3 size={16} />
+              {loading ? 'Loading...' : 'Generate Report'}
+            </button>
+          </div>
+          {metrics && (
+            <div className="filter-group" style={{ flex: 'none' }}>
+              <label style={{ visibility: 'hidden' }}>Export</label>
+              <button
                 onClick={() => setShowExportModal(true)}
                 disabled={loading}
-                className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white h-14 px-8 text-base font-semibold shadow-lg shadow-emerald-500/20 transition-all border-0"
+                className="btn-secondary"
+                style={{ width: '100%', justifyContent: 'center' }}
               >
-                <Download size={20} className="mr-2" />
-                Export Report
-              </Button>
-            )}
-          </div>
-
-          {/* Progress */}
-          {loading && (
-            <div className="mt-6">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-slate-300 font-medium">{progressText}</span>
-                <span className="font-bold text-cyan-400">{progress}%</span>
-              </div>
-              <div className="loading-bar">
-                <div className="loading-bar-progress" style={{ width: `${progress}%` }} />
-              </div>
+                <Download size={16} />
+                Export
+              </button>
             </div>
           )}
         </div>
 
+        {/* Progress */}
+        {loading && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.85rem' }}>
+              <span style={{ color: '#6B7280', fontWeight: 500 }}>{progressText}</span>
+              <span style={{ fontFamily: 'JetBrains Mono,monospace', fontWeight: 700, color: '#FF8C42' }}>{progress}%</span>
+            </div>
+            <div className="loading-bar">
+              <div className="loading-bar-progress" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+        )}
+
         {/* Analytics Content */}
         {!metrics ? (
-          <div className="bg-[#0F172A]/60 backdrop-blur-md rounded-2xl shadow-xl border border-white/5 p-16 text-center">
-            <div className="max-w-md mx-auto">
-              <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-6 border border-white/5 shadow-inner">
-                <BarChart3 size={48} className="text-cyan-400" />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-3 tracking-wide">Ready to Analyze</h3>
-              <p className="text-slate-400 mb-8 text-lg">
-                Configure your filters and click "Generate Report" to fetch and analyze your JIRA data
-              </p>
-              <Button
-                onClick={() => setShowFilterModal(true)}
-                className="bg-[#1E293B] hover:bg-[#334155] text-white border border-white/10 font-medium shadow-sm transition-colors px-6 h-12"
-              >
-                <Filter size={18} className="mr-2 text-cyan-400" />
-                Configure Filters
-              </Button>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: 20,
+            border: '1px solid #FFE4CC',
+            padding: '80px 40px',
+            textAlign: 'center',
+            boxShadow: '0 4px 16px rgba(255,140,66,0.1)',
+            animation: 'fadeInUp 0.6s ease-out',
+          }}>
+            <div style={{
+              width: 88, height: 88, borderRadius: 20,
+              background: 'linear-gradient(135deg,#FF8C42,#FFB380)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 24px',
+              boxShadow: '0 8px 24px rgba(255,140,66,0.3)',
+            }}>
+              <BarChart3 color="white" size={44} />
             </div>
+            <h3 style={{ fontFamily: 'Outfit,sans-serif', fontSize: '1.75rem', fontWeight: 700, color: '#1F2937', marginBottom: 12 }}>
+              Ready to Analyze
+            </h3>
+            <p style={{ color: '#6B7280', fontSize: '1rem', marginBottom: 28, maxWidth: 420, margin: '0 auto 28px' }}>
+              Use the filter bar above to configure your date range and team, then click <strong>Generate Report</strong>.
+            </p>
+            <button onClick={() => setShowFilterModal(true)} className="btn-secondary">
+              <Filter size={16} />
+              Configure Filters
+            </button>
           </div>
         ) : (
           <div className="space-y-8">
             {/* Metrics Cards */}
             <MetricsCards metrics={metrics} />
-            
+
             {/* Quick Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="analytics-card">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 flex items-center justify-center border border-white/5 shadow-sm">
-                    <CheckCircle size={20} className="text-teal-400" />
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#14B8A6,#5EEAD4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CheckCircle size={20} color="white" />
                   </div>
-                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Test Coverage</h4>
+                  <h4 style={{ fontFamily: 'Outfit,sans-serif', fontSize: '0.72rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Test Coverage</h4>
                 </div>
-                <div className="text-3xl font-bold text-white mb-1 tracking-tight">
+                <div style={{ fontFamily: 'JetBrains Mono,monospace', fontSize: '2rem', fontWeight: 700, color: '#1F2937', marginBottom: 4 }}>
                   {metrics.advancedAnalytics.testMetrics.total}
                 </div>
-                <div className="text-sm text-slate-500">Total Tests</div>
-                <div className="mt-3 flex gap-2 text-xs">
-                  <span className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded font-medium">
+                <div style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>Total Tests</div>
+                <div className="mt-3 flex gap-2 flex-wrap" style={{ fontSize: '0.72rem' }}>
+                  <span style={{ padding: '3px 10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', color: '#059669', borderRadius: 6, fontWeight: 600 }}>
                     ✓ {metrics.advancedAnalytics.testMetrics.passed} passed
                   </span>
                   {metrics.advancedAnalytics.testMetrics.failed > 0 && (
-                    <span className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-400 rounded font-medium">
+                    <span style={{ padding: '3px 10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#DC2626', borderRadius: 6, fontWeight: 600 }}>
                       ✗ {metrics.advancedAnalytics.testMetrics.failed} failed
                     </span>
                   )}
@@ -367,49 +448,49 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
 
               <div className="analytics-card">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center border border-white/5 shadow-sm">
-                    <Clock size={20} className="text-amber-400" />
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#F59E0B,#FCD34D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Clock size={20} color="white" />
                   </div>
-                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Avg Resolution</h4>
+                  <h4 style={{ fontFamily: 'Outfit,sans-serif', fontSize: '0.72rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Avg Resolution</h4>
                 </div>
-                <div className="text-3xl font-bold text-white mb-1 tracking-tight">
+                <div style={{ fontFamily: 'JetBrains Mono,monospace', fontSize: '2rem', fontWeight: 700, color: '#1F2937', marginBottom: 4 }}>
                   {metrics.timeMetrics.avgResolutionTime}
                 </div>
-                <div className="text-sm text-slate-500">Days</div>
-                <div className="mt-3 text-xs text-slate-400">
-                  <span className="text-amber-400 font-medium">{metrics.timeMetrics.resolvedIssues}</span> issues resolved
+                <div style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>Days</div>
+                <div style={{ marginTop: 12, fontSize: '0.75rem', color: '#9CA3AF' }}>
+                  <span style={{ color: '#F59E0B', fontWeight: 600 }}>{metrics.timeMetrics.resolvedIssues}</span> issues resolved
                 </div>
               </div>
 
               <div className="analytics-card">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center border border-white/5 shadow-sm">
-                    <Tag size={20} className="text-purple-400" />
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#8B5CF6,#C084FC)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Tag size={20} color="white" />
                   </div>
-                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Labels Used</h4>
+                  <h4 style={{ fontFamily: 'Outfit,sans-serif', fontSize: '0.72rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Labels Used</h4>
                 </div>
-                <div className="text-3xl font-bold text-white mb-1 tracking-tight">
+                <div style={{ fontFamily: 'JetBrains Mono,monospace', fontSize: '2rem', fontWeight: 700, color: '#1F2937', marginBottom: 4 }}>
                   {metrics.labelMetrics.topLabels.length}
                 </div>
-                <div className="text-sm text-slate-500">Unique Labels</div>
-                <div className="mt-3 text-xs text-slate-400">
-                  <span className="text-purple-400 font-medium">{Object.keys(metrics.labelMetrics.labelByIssueType).length}</span> categories
+                <div style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>Unique Labels</div>
+                <div style={{ marginTop: 12, fontSize: '0.75rem', color: '#9CA3AF' }}>
+                  <span style={{ color: '#8B5CF6', fontWeight: 600 }}>{Object.keys(metrics.labelMetrics.labelByIssueType).length}</span> categories
                 </div>
               </div>
 
               <div className="analytics-card">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-rose-500/20 to-red-500/20 flex items-center justify-center border border-white/5 shadow-sm">
-                    <Bug size={20} className="text-rose-400" />
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#EF4444,#F87171)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Bug size={20} color="white" />
                   </div>
-                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Bug Density</h4>
+                  <h4 style={{ fontFamily: 'Outfit,sans-serif', fontSize: '0.72rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Bug Density</h4>
                 </div>
-                <div className="text-3xl font-bold text-white mb-1 tracking-tight">
+                <div style={{ fontFamily: 'JetBrains Mono,monospace', fontSize: '2rem', fontWeight: 700, color: '#1F2937', marginBottom: 4 }}>
                   {metrics.qualityMetrics.bugDensity}%
                 </div>
-                <div className="text-sm text-slate-500">Bugs per Story</div>
-                <div className="mt-3 text-xs text-slate-400">
-                  <span className="text-rose-400 font-medium">{metrics.qualityMetrics.totalBugs}</span> total bugs
+                <div style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>Bugs per Story</div>
+                <div style={{ marginTop: 12, fontSize: '0.75rem', color: '#9CA3AF' }}>
+                  <span style={{ color: '#EF4444', fontWeight: 600 }}>{metrics.qualityMetrics.totalBugs}</span> total bugs
                 </div>
               </div>
             </div>

@@ -64,6 +64,9 @@ class JiraFieldsRequest(BaseModel):
 class JiraUsersRequest(BaseModel):
     config: JiraConfig
 
+class JiraTeamRequest(BaseModel):
+    config: JiraConfig
+
 
 def get_jira_auth_headers(config: JiraConfig) -> dict:
     """Generate authorization headers for Jira API"""
@@ -237,6 +240,99 @@ async def get_jira_users(request: JiraUsersRequest):
     except Exception as e:
         logger.error(f"JIRA users fetch error: {str(e)}")
         return {"success": False, "error": str(e), "users": []}
+
+
+@api_router.post("/jira/team-field")
+async def get_team_field(request: JiraTeamRequest):
+    """Discover the Jira Team custom field ID by scanning all project fields."""
+    try:
+        config = request.config
+        headers = get_jira_auth_headers(config)
+        jira_url = config.url.rstrip('/')
+
+        async with httpx.AsyncClient(timeout=30.0) as http_client:
+            response = await http_client.get(
+                f"{jira_url}/rest/api/3/field",
+                headers=headers
+            )
+            if response.status_code != 200:
+                return {"success": False, "error": "Failed to fetch fields", "teamFieldId": None}
+
+            fields = response.json()
+            team_field_id = None
+            for field in fields:
+                custom_type = field.get("schema", {}).get("custom", "")
+                field_name = field.get("name", "").lower()
+                if ("team" in custom_type.lower() or field_name == "team"):
+                    team_field_id = field.get("id")
+                    logger.info(f"Found Team field: {team_field_id} ({field.get('name')})")
+                    break
+
+            if team_field_id:
+                return {"success": True, "teamFieldId": team_field_id}
+            else:
+                return {"success": False, "error": "Team field not found", "teamFieldId": None}
+
+    except Exception as e:
+        logger.error(f"Team field discovery error: {str(e)}")
+        return {"success": False, "error": str(e), "teamFieldId": None}
+
+
+@api_router.post("/jira/teams")
+async def get_jira_teams(request: JiraTeamRequest):
+    """Fetch unique teams by scanning project issues for the Team custom field."""
+    try:
+        config = request.config
+        headers = get_jira_auth_headers(config)
+        jira_url = config.url.rstrip('/')
+
+        # Discover team field
+        tf_resp = await get_team_field(request)
+        team_field_id = tf_resp.get("teamFieldId")
+
+        teams_map = {}
+
+        async with httpx.AsyncClient(timeout=60.0) as http_client:
+            fields_to_fetch = ["summary"]
+            if team_field_id:
+                fields_to_fetch.append(team_field_id)
+
+            search_body = {
+                "jql": f"project = {config.projectKey} ORDER BY created DESC",
+                "maxResults": 500,
+                "fields": fields_to_fetch
+            }
+
+            response = await http_client.post(
+                f"{jira_url}/rest/api/3/search/jql",
+                headers=headers,
+                json=search_body
+            )
+
+            if response.status_code == 200:
+                issues = response.json().get("issues", [])
+                for issue in issues:
+                    f = issue.get("fields", {})
+                    team_data = f.get(team_field_id) if team_field_id else None
+                    if team_data and isinstance(team_data, dict):
+                        tid = team_data.get("id") or team_data.get("teamId")
+                        tname = team_data.get("name") or team_data.get("title")
+                        if tid and tname:
+                            teams_map[tid] = {"id": tid, "name": tname}
+                    elif team_data and isinstance(team_data, str) and team_data.strip():
+                        teams_map[team_data] = {"id": team_data, "name": team_data}
+
+        teams = sorted(teams_map.values(), key=lambda x: x["name"])
+        return {
+            "success": True,
+            "teams": teams,
+            "teamFieldId": team_field_id,
+            "total": len(teams)
+        }
+
+    except Exception as e:
+        logger.error(f"Teams fetch error: {str(e)}")
+        return {"success": False, "error": str(e), "teams": [], "teamFieldId": None}
 
 
 @api_router.post("/jira/search")
