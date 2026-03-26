@@ -19,7 +19,9 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
     status: [],
     issueType: [],
     labels: [],
-    sprint: ''
+    sprint: '',
+    team: 'all',
+    customJql: ''
   });
   const [metrics, setMetrics] = useState(null);
   const [rawIssues, setRawIssues] = useState([]);
@@ -30,7 +32,6 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportOptions, setExportOptions] = useState(DEFAULT_EXPORT_OPTIONS);
   const [teams, setTeams] = useState([]);
-  const [selectedTeam, setSelectedTeam] = useState('all');
   const chartRefs = useRef({});
   const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -481,18 +482,24 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
             </div>
 
             {/* Charts */}
-            <ChartsPreview metrics={metrics} chartRefs={chartRefs} />
+            <ChartsPreview
+            metrics={metrics}
+            rawIssues={rawIssues}
+            chartRefs={chartRefs}
+            selectedTeam={filters.team}
+          />
           </div>
         )}
       </div>
 
       {/* Modals */}
-      <FilterModal 
+      <FilterModal
         open={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         filters={filters}
         setFilters={setFilters}
         onApply={handleApplyFilters}
+        teams={teams}
       />
 
       <ExportOptionsModal

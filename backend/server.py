@@ -384,6 +384,15 @@ async def search_jira_issues(request: JiraSearchRequest):
         
         if story_points_field and story_points_field not in story_points_field_ids:
             story_points_field_ids.insert(0, story_points_field)
+            
+        # Discover team field automatically for Team JQL natively
+        team_field_id = None
+        team_id = filters.get('team')
+        if team_id and team_id != 'all':
+            tf_req = JiraTeamRequest(config=config)
+            tf_resp = await get_team_field(tf_req)
+            if tf_resp.get('success'):
+                team_field_id = tf_resp.get('teamFieldId')
         
         # Build JQL query with proper quoting for multi-word values
         conditions = [f"project = {config.projectKey}"]
@@ -419,8 +428,20 @@ async def search_jira_issues(request: JiraSearchRequest):
                 conditions.append('assignee is EMPTY')
             else:
                 conditions.append(f'assignee = "{filters["assignee"]}"')
+                
+        # Native Team Id filter
+        if team_field_id and team_id and team_id != 'all':
+            conditions.append(f'"{team_field_id}" = "{team_id}"')
             
         jql = ' AND '.join(conditions) + ' ORDER BY created DESC'
+        
+        # User Defined Custom JQL injection
+        if filters.get('customJql'):
+            if len(conditions) > 0:
+                jql = f"({ ' AND '.join(conditions) }) AND ({filters.get('customJql')}) ORDER BY created DESC"
+            else:
+                jql = f"{filters.get('customJql')} ORDER BY created DESC"
+
         logger.info(f"JQL Query: {jql}")
         
         # Build fields list - include all potential story points fields

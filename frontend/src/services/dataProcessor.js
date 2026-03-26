@@ -285,11 +285,14 @@ const calculateAdvancedAnalytics = (issues) => {
       issueTypeVsLabel[issueType][label] = (issueTypeVsLabel[issueType][label] || 0) + 1;
     });
     
-    // Test tracking
-    if (issueType === 'Test') {
+    // Test tracking (match "Test", "Test Execution", etc)
+    if (issueType.toLowerCase().includes('test')) {
       testMetrics.total += 1;
       const status = issue.fields.status?.name?.toLowerCase() || '';
-      if (status.includes('pass') || status.includes('done')) {
+      const statusCategoryName = issue.fields.status?.statusCategory?.name?.toLowerCase() || '';
+      
+      // Treat as "Passed / Completed" if explicitly marked pass, success, done, or closed
+      if (status.includes('pass') || status.includes('success') || status.includes('done') || status.includes('closed') || statusCategoryName === 'done' || statusCategoryName === 'closed') {
         testMetrics.passed += 1;
       } else if (status.includes('fail')) {
         testMetrics.failed += 1;

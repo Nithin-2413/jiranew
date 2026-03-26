@@ -17,15 +17,13 @@ const COMMON_ISSUE_TYPES = [
   'Sub-task'
 ];
 
-const FilterModal = ({ open, onClose, filters, setFilters, onApply, teams = [], selectedTeam, setSelectedTeam }) => {
+const FilterModal = ({ open, onClose, filters, setFilters, onApply, teams = [] }) => {
   const [localFilters, setLocalFilters] = useState(filters);
-  const [localTeam, setLocalTeam] = useState(selectedTeam || 'all');
   const datePresets = getDatePresets();
 
   useEffect(() => {
     setLocalFilters(filters);
-    setLocalTeam(selectedTeam || 'all');
-  }, [filters, selectedTeam, open]);
+  }, [filters, open]);
 
   const handlePresetSelect = (preset) => {
     setLocalFilters(prev => ({
@@ -48,9 +46,6 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply, teams = [], 
 
   const handleApply = () => {
     setFilters(localFilters);
-    if (setSelectedTeam) {
-      setSelectedTeam(localTeam);
-    }
     onApply();
   };
 
@@ -61,10 +56,11 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply, teams = [], 
       status: [],
       issueType: [],
       labels: [],
-      sprint: ''
+      sprint: '',
+      team: 'all',
+      customJql: ''
     };
     setLocalFilters(clearedFilters);
-    setLocalTeam('all');
   };
 
   return (
@@ -119,8 +115,8 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply, teams = [], 
               <select
                 id="team-select"
                 data-testid="team-select"
-                value={localTeam}
-                onChange={(e) => setLocalTeam(e.target.value)}
+                value={localFilters.team || 'all'}
+                onChange={(e) => setLocalFilters(prev => ({ ...prev, team: e.target.value }))}
                 className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               >
                 <option value="all">All Teams</option>
@@ -213,6 +209,22 @@ const FilterModal = ({ open, onClose, filters, setFilters, onApply, teams = [], 
               className="bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500"
             />
             <p className="text-xs text-slate-500 mt-1">Comma-separated values</p>
+          </div>
+
+          {/* Custom JQL Filter */}
+          <div className="pt-2 border-t border-slate-200">
+            <Label htmlFor="custom-jql" className="text-slate-700 font-semibold text-sm uppercase tracking-wide mb-2 block">
+              Advanced Search (Custom JQL)
+            </Label>
+            <Input
+              id="custom-jql"
+              data-testid="custom-jql-input"
+              placeholder='e.g. "Team[Team]" in ( "8 LCC UI team" ) AND creator = currentUser()'
+              value={localFilters.customJql || ''}
+              onChange={(e) => setLocalFilters(prev => ({ ...prev, customJql: e.target.value }))}
+              className="bg-white border-slate-300 text-slate-900 font-mono text-xs placeholder:text-slate-400 focus:border-cyan-500"
+            />
+            <p className="text-xs text-slate-500 mt-1">This will be appended to your query natively via the Jira API.</p>
           </div>
 
           {/* Action Buttons */}
