@@ -286,25 +286,40 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
 
   // 6. Test Execution Data
   const testMetricsData = useMemo(() => {
-    const enforcedTestFilters = { ...testFilters, type: 'Test' };
-    const issues = getFilteredIssues(metrics.detailedIssues, enforcedTestFilters);
-    let passed = 0, failed = 0, blocked = 0;
+    const issues = getFilteredIssues(metrics.detailedIssues, testFilters)
+      .filter(i => (i.type || '').toLowerCase().includes('test'));
+    let passed = 0, failed = 0, blocked = 0, pending = 0;
     
     issues.forEach(i => {
       const s = (i.status || '').toLowerCase();
-      if (s.includes('pass') || s.includes('done')) passed++;
-      else if (s.includes('fail')) failed++;
-      else if (s.includes('block')) blocked++;
+      const sc = (i.statusCategory || '').toLowerCase();
+      if (s.includes('pass') || s.includes('success') || s.includes('done') || s.includes('closed') || sc === 'done' || sc === 'closed') {
+        passed++;
+      } else if (s.includes('fail')) {
+        failed++;
+      } else if (s.includes('block')) {
+        blocked++;
+      } else {
+        pending++;
+      }
     });
 
     return {
-      total: passed + failed + blocked,
+      total: passed + failed + blocked + pending,
       data: [
         { name: 'Passed', value: passed },
         { name: 'Failed', value: failed },
-        { name: 'Blocked', value: blocked }
+        { name: 'Blocked', value: blocked },
+        { name: 'Pending', value: pending }
       ].filter(d => d.value > 0)
     };
+  }, [metrics.detailedIssues, testFilters]);
+
+  // 6b. Unlabeled Test Data
+  const unlabeledTestData = useMemo(() => {
+    return getFilteredIssues(metrics.detailedIssues, testFilters)
+      .filter(i => (i.type || '').toLowerCase().includes('test') && (!i.labels || i.labels.length === 0))
+      .sort((a,b) => new Date(b.created) - new Date(a.created));
   }, [metrics.detailedIssues, testFilters]);
 
   // 7. Labels Analysis Table Data
@@ -475,7 +490,7 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
       {/* Test Execution */}
       <div className="charts-section">
         <h3 className="section-title">Test Execution</h3>
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ChartCard 
             title="Test Results" 
             subtitle={`${testMetricsData.total} specific tests matched`}
@@ -488,7 +503,7 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
                  <ResponsiveContainer width="100%" height="100%">
                    <PieChart animationDuration={800}>
                      <Pie data={testMetricsData.data} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value" labelLine={false} label={renderCustomizedLabel}>
-                       {testMetricsData.data.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.name === 'Passed' ? '#10B981' : entry.name === 'Failed' ? '#EF4444' : '#F59E0B'} />)}
+                       {testMetricsData.data.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.name === 'Passed' ? '#10B981' : entry.name === 'Failed' ? '#EF4444' : entry.name === 'Blocked' ? '#F59E0B' : '#94A3B8'} />)}
                      </Pie>
                      <RechartsTooltip content={<CustomTooltip />} />
                      <RechartsLegend wrapperStyle={{ fontFamily: 'Plus Jakarta Sans', fontSize: '12px' }} />
@@ -496,6 +511,49 @@ const ChartsPreview = ({ metrics, chartRefs, loading = false }) => {
                  </ResponsiveContainer>
                </div>
             ) : <div className="flex items-center justify-center h-[280px] text-gray-400">No tests found for filters</div>}
+          </ChartCard>
+
+          <ChartCard 
+            title="Tests missing labels" 
+            subtitle={`${unlabeledTestData.length} unlabeled tests found`}
+            chartId="chart-unlabeled-tests"
+            filtersConfig={generateFilterConfig(testFilters)}
+            onFilterChange={handleFilterChange(setTestFilters, testFilters)}
+          >
+            {unlabeledTestData.length > 0 ? (
+              <div className="table-scroll-container h-[280px]">
+                <table className="data-table text-xs">
+                  <thead>
+                    <tr>
+                      <th>Key</th>
+                      <th>Summary</th>
+                      <th>Status</th>
+                      <th>Assignee</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unlabeledTestData.slice(0, 15).map((issue) => (
+                      <tr key={issue.key}>
+                        <td className="font-bold text-[#FF8C42] whitespace-nowrap">{issue.key}</td>
+                        <td className="max-w-[150px] truncate text-gray-700" title={issue.summary}>
+                          {issue.summary?.substring(0, 30)}{issue.summary?.length > 30 ? '...' : ''}
+                        </td>
+                        <td>
+                          <span className={`status-badge py-0.5 ${
+                            issue.statusCategory === 'Done' ? 'status-resolved' :
+                            issue.statusCategory === 'In Progress' ? 'status-in-progress' :
+                            'status-open'
+                          }`}>
+                            {issue.status}
+                          </span>
+                        </td>
+                        <td className="text-gray-500 whitespace-nowrap">{issue.assignee}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <div className="flex items-center justify-center h-[280px] text-gray-400">All tests have labels!</div>}
           </ChartCard>
         </div>
       </div>

@@ -295,7 +295,7 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
               <Button
                 data-testid="filter-btn"
                 onClick={() => setShowFilterModal(true)}
-                style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.4)', backdropFilter: 'blur(8px)', fontFamily: 'Outfit,sans-serif', fontWeight: 600 }}
+                style={{ background: 'rgba(255,255,255,0.95)', color: '#FF8C42', border: 'none', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', fontFamily: 'Outfit,sans-serif', fontWeight: 700 }}
               >
                 <Filter size={16} className="mr-2" />
                 Filters
@@ -304,9 +304,9 @@ const Dashboard = ({ jiraConfig, onOpenConfig }) => {
                 data-testid="settings-btn"
                 onClick={onOpenConfig}
                 variant="outline"
-                style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.4)', backdropFilter: 'blur(8px)' }}
+                style={{ background: 'rgba(255,255,255,0.95)', color: '#1E293B', border: 'none', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}
               >
-                <Settings size={16} />
+                <Settings size={18} />
               </Button>
             </div>
           </div>

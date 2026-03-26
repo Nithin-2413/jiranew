@@ -72,12 +72,54 @@ const METRIC_CONFIGS = [
     getValue: (m) => formatLargeNumber(Math.round(m.storyPointsMetrics.completedPoints / 2) || 0),
     getSubtitle: () => 'pts / sprint',
   },
+  {
+    key: 'test_passed',
+    title: 'Tests Passed',
+    icon: CheckCircle2,
+    iconStyle: { background: 'linear-gradient(135deg,#10B981,#34D399)' },
+    testId: 'metric-tests-passed',
+    getValue: (m) => formatLargeNumber(m.advancedAnalytics.testMetrics.passed),
+    getSubtitle: () => 'successfully completed',
+    testOnly: true
+  },
+  {
+    key: 'test_failed',
+    title: 'Tests Failed',
+    icon: Target,
+    iconStyle: { background: 'linear-gradient(135deg,#EF4444,#F87171)' },
+    testId: 'metric-tests-failed',
+    getValue: (m) => formatLargeNumber(m.advancedAnalytics.testMetrics.failed),
+    getSubtitle: () => 'requires attention',
+    testOnly: true
+  },
+  {
+    key: 'test_pending',
+    title: 'Tests Pending',
+    icon: Clock,
+    iconStyle: { background: 'linear-gradient(135deg,#F59E0B,#FCD34D)' },
+    testId: 'metric-tests-pending',
+    getValue: (m) => {
+      const tm = m.advancedAnalytics.testMetrics;
+      return formatLargeNumber(Math.max(0, tm.total - tm.passed - tm.failed - tm.blocked));
+    },
+    getSubtitle: () => 'to do / in progress',
+    testOnly: true
+  }
 ];
 
 const MetricsCards = ({ metrics }) => {
+  if (!metrics) return null;
+  const isTestMode = (metrics.storyPointsMetrics?.totalPoints || 0) === 0 && (metrics.advancedAnalytics?.testMetrics?.total || 0) > 0;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      {METRIC_CONFIGS.map((cfg, i) => {
+      {METRIC_CONFIGS.filter(cfg => {
+        if (isTestMode) {
+          if (['completion', 'points', 'velocity'].includes(cfg.key)) return false;
+          return true;
+        } else {
+          return !cfg.testOnly;
+        }
+      }).map((cfg, i) => {
         const Icon = cfg.icon;
         const value = cfg.getValue(metrics);
         const subtitle = cfg.getSubtitle ? cfg.getSubtitle(metrics) : null;
